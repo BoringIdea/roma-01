@@ -7,6 +7,8 @@
 
 A competitive **AI-powered cryptocurrency futures trading** platform featuring a **NOF1-inspired interface** ([nof1.ai](https://nof1.ai/)) for showcasing multiple LLM models side-by-side, powered by the **ROMA (Recursive Open Meta-Agents)** framework.
 
+English | [简体中文](README.zh-CN.md)
+
 ---
 
 ## 🎯 About This Project

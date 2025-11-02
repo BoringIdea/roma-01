@@ -499,7 +499,7 @@ describe('AgentCard', () => {
 - 📖 Read the [documentation](docs/)
 - 🐛 GitHub Issues: [https://github.com/lukema95/roma-01/issues](https://github.com/lukema95/roma-01/issues)
 - 💬 Discussions: [https://github.com/lukema95/roma-01/discussions](https://github.com/lukema95/roma-01/discussions)
-- 📧 Email: lukema95@github.com
+- 📧 Email: lukema95@gmail.com
 
 ### Recognition
 
