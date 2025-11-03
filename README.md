@@ -87,6 +87,10 @@ ROMA is a **meta-agent framework** that uses recursive hierarchical structures t
 
 ## 🚀 Quick Start
 
+**Choose your deployment method:**
+- 🐳 **Docker** (Recommended for production): See [Docker Deployment Guide](docs/DOCKER_DEPLOYMENT.md)
+- 💻 **Local Development**: Follow the instructions below
+
 ### Prerequisites
 
 - Python 3.12 or 3.13 (**NOT 3.14**)

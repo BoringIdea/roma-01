@@ -7,30 +7,24 @@ services:
       dockerfile: Dockerfile
     ports:
       - "8000:8000"
+    env_file:
+      - .env
     environment:
-      # Aster DEX
-      - ASTER_USER=${ASTER_USER}
-      - ASTER_SIGNER=${ASTER_SIGNER}
-      - ASTER_PRIVATE_KEY=${ASTER_PRIVATE_KEY}
-      
-      # LLM APIs
-      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY}
-      - QWEN_API_KEY=${QWEN_API_KEY}
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
-      
-      # API Config
+      # API Config (override if needed)
       - API_HOST=0.0.0.0
       - API_PORT=8000
       - CORS_ORIGINS=http://localhost:3000
     volumes:
       - ./backend/config:/app/config
       - ./backend/logs:/app/logs
+      - backend-data:/app/data
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
       timeout: 10s
       retries: 3
+      start_period: 40s
 
   frontend:
     build:
@@ -45,5 +39,6 @@ services:
     restart: unless-stopped
 
 volumes:
+  backend-data:
   logs:
 
