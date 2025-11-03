@@ -36,7 +36,7 @@ class AsterToolkit(BaseDEXToolkit):
     BASE_URL = "https://fapi.asterdex.com"
     RECV_WINDOW = "50000"  # milliseconds
     
-    def __init__(self, user: str, signer: str, private_key: str):
+    def __init__(self, user: str, signer: str, private_key: str, hedge_mode: bool = False):
         """
         Initialize Aster toolkit.
         
@@ -44,9 +44,11 @@ class AsterToolkit(BaseDEXToolkit):
             user: Main wallet address (ERC20)
             signer: API wallet address
             private_key: API wallet private key (without 0x prefix)
+            hedge_mode: Whether account uses dual-position mode (default: False for one-way mode)
         """
         self.user = user
         self.signer = signer
+        self.hedge_mode = hedge_mode
         
         # Initialize eth account
         if private_key.startswith("0x"):
@@ -372,20 +374,22 @@ class AsterToolkit(BaseDEXToolkit):
         
         logger.info(f"Opening LONG {symbol}: quantity={qty_str}, price={price_str}, leverage={leverage}x")
         
-        # Place order (use LONG for hedge mode)
-        result = await self._request(
-            "POST",
-            "/fapi/v3/order",
-            {
-                "symbol": symbol,
-                "positionSide": "LONG",  # Hedge mode
-                "type": "LIMIT",
-                "side": "BUY",
-                "timeInForce": "GTC",
-                "quantity": qty_str,
-                "price": price_str,
-            }
-        )
+        # Prepare order parameters
+        order_params = {
+            "symbol": symbol,
+            "type": "LIMIT",
+            "side": "BUY",
+            "timeInForce": "GTC",
+            "quantity": qty_str,
+            "price": price_str,
+        }
+        
+        # Add positionSide only if hedge mode is enabled
+        if self.hedge_mode:
+            order_params["positionSide"] = "LONG"
+        
+        # Place order
+        result = await self._request("POST", "/fapi/v3/order", order_params)
         
         return {
             "order_id": result.get("orderId"),
@@ -420,19 +424,22 @@ class AsterToolkit(BaseDEXToolkit):
         
         logger.info(f"Opening SHORT {symbol}: quantity={qty_str}, price={price_str}, leverage={leverage}x")
         
-        result = await self._request(
-            "POST",
-            "/fapi/v3/order",
-            {
-                "symbol": symbol,
-                "positionSide": "SHORT",  # Hedge mode
-                "type": "LIMIT",
-                "side": "SELL",
-                "timeInForce": "GTC",
-                "quantity": qty_str,
-                "price": price_str,
-            }
-        )
+        # Prepare order parameters
+        order_params = {
+            "symbol": symbol,
+            "type": "LIMIT",
+            "side": "SELL",
+            "timeInForce": "GTC",
+            "quantity": qty_str,
+            "price": price_str,
+        }
+        
+        # Add positionSide only if hedge mode is enabled
+        if self.hedge_mode:
+            order_params["positionSide"] = "SHORT"
+        
+        # Place order
+        result = await self._request("POST", "/fapi/v3/order", order_params)
         
         return {
             "order_id": result.get("orderId"),
@@ -473,22 +480,23 @@ class AsterToolkit(BaseDEXToolkit):
         
         logger.info(f"Closing {side.upper()} {symbol}: quantity={qty_str}")
         
-        # In hedge mode, positionSide must match the position being closed
-        position_side = "LONG" if side == "long" else "SHORT"
+        # Prepare order parameters
+        order_params = {
+            "symbol": symbol,
+            "type": "LIMIT",
+            "side": order_side,
+            "timeInForce": "GTC",
+            "quantity": qty_str,
+            "price": price_str,
+        }
         
-        result = await self._request(
-            "POST",
-            "/fapi/v3/order",
-            {
-                "symbol": symbol,
-                "positionSide": position_side,  # Hedge mode: LONG or SHORT
-                "type": "LIMIT",
-                "side": order_side,
-                "timeInForce": "GTC",
-                "quantity": qty_str,
-                "price": price_str,
-            }
-        )
+        # Add positionSide only if hedge mode is enabled
+        if self.hedge_mode:
+            position_side = "LONG" if side == "long" else "SHORT"
+            order_params["positionSide"] = position_side
+        
+        # Place order
+        result = await self._request("POST", "/fapi/v3/order", order_params)
         
         # Cancel remaining orders
         await self._cancel_all_orders(symbol)

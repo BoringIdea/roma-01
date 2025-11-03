@@ -19,6 +19,7 @@ exchange:
   signer: "${ASTER_SIGNER_GPT}"
   private_key: "${ASTER_PRIVATE_KEY_GPT}"
   testnet: false
+  hedge_mode: false  # Set to true if account uses dual-position mode (hedge mode)
 
 strategy:
   initial_balance: 10000.0

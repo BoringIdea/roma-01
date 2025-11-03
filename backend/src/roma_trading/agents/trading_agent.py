@@ -69,6 +69,7 @@ class TradingAgent:
             user=config["exchange"]["user"],
             signer=config["exchange"]["signer"],
             private_key=config["exchange"]["private_key"],
+            hedge_mode=config["exchange"].get("hedge_mode", False),
         )
         
         # Initialize technical analysis
