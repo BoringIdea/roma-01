@@ -113,7 +113,7 @@ Any alternative solutions or features considered?
 
 ```bash
 # Fork the repository on GitHub, then clone your fork
-git clone https://github.com/YOUR_USERNAME/roma-01.git
+git clone https://github.com/lukema95/roma-01.git
 cd roma-01
 
 # Add upstream remote

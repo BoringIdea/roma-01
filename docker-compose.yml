@@ -13,7 +13,7 @@ services:
       # API Config (override if needed)
       - API_HOST=0.0.0.0
       - API_PORT=8000
-      - CORS_ORIGINS=http://localhost:3000
+      - CORS_ORIGINS=*
     volumes:
       - ./backend/config:/app/config
       - ./backend/logs:/app/logs
