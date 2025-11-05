@@ -112,6 +112,22 @@ export const api = {
     }
     throw new Error("Failed to load prompt preview");
   },
+  
+  // Chat with AI assistant
+  chat: async (message: string): Promise<{ message: string }> => {
+    const response = await fetch(`${API_BASE}/api/chat`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message }),
+    });
+    
+    if (!response.ok) {
+      throw new Error(`API error: ${response.statusText}`);
+    }
+    
+    const data = await response.json();
+    return data;
+  },
 };
 
 // WebSocket connection for real-time updates

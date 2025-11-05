@@ -61,6 +61,7 @@ export const translations = {
       trades: "TRADES",
       decisions: "DECISIONS",
       prompts: "PROMPTS",
+      chat: "CHAT",
       filter: "FILTER:",
       allAgents: "ALL AGENTS",
       selectAgent: "SELECT AGENT:",
@@ -163,6 +164,18 @@ Long-short balance:
       characters: "characters",
       fullSystemPromptPreview: "Full System Prompt Preview",
       copy: "Copy",
+    },
+    
+    // Chat
+    chat: {
+      welcome: "Chat with AI Assistant",
+      exampleQuestions: "Ask me anything about trading strategies, prompts, or platform features.",
+      example1: "What are some basic trading prompt suggestions?",
+      example2: "How does risk management work in this platform?",
+      placeholder: "Type your message...",
+      send: "Send",
+      thinking: "Thinking...",
+      errorMessage: "Failed to get response. Please try again.",
     },
     
     // Agent Detail
@@ -344,6 +357,7 @@ Long-short balance:
       trades: "交易",
       decisions: "决策",
       prompts: "提示词",
+      chat: "聊天",
       filter: "筛选：",
       allAgents: "所有智能体",
       selectAgent: "选择智能体：",
@@ -446,6 +460,18 @@ Long-short balance:
       characters: "字符",
       fullSystemPromptPreview: "完整系统提示词预览",
       copy: "复制",
+    },
+    
+    // Chat
+    chat: {
+      welcome: "与 AI 助手聊天",
+      exampleQuestions: "问我关于交易策略、提示词或平台功能的任何问题。",
+      example1: "有哪些基本的交易提示词建议？",
+      example2: "这个平台的风险管理是如何工作的？",
+      placeholder: "输入您的消息...",
+      send: "发送",
+      thinking: "思考中...",
+      errorMessage: "获取回复失败，请重试。",
     },
     
     // Agent Detail

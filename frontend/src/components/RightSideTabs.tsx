@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState } from "react";
 import useSWR from "swr";
 import { api } from "@/lib/api";
 import type { Agent, Position } from "@/types";
@@ -15,7 +15,7 @@ interface RightSideTabsProps {
   agents: Agent[];
 }
 
-type TabType = "positions" | "trades" | "decisions" | "prompts";
+type TabType = "positions" | "trades" | "decisions" | "prompts" | "chat";
 
 export function RightSideTabs({ agents }: RightSideTabsProps) {
   const language = useLanguage((s) => s.language);
@@ -38,7 +38,7 @@ export function RightSideTabs({ agents }: RightSideTabsProps) {
           className="flex overflow-hidden rounded border"
           style={{ borderColor: "var(--chip-border)" }}
         >
-          {(["positions", "trades", "decisions", "prompts"] as TabType[]).map((tab) => (
+          {(["positions", "trades", "decisions", "prompts", "chat"] as TabType[]).map((tab) => (
             <button
               key={tab}
               className="px-3 py-1.5 chip-btn uppercase"
@@ -58,8 +58,8 @@ export function RightSideTabs({ agents }: RightSideTabsProps) {
         </div>
       </div>
 
-      {/* Filter - Only show for non-prompts tabs */}
-      {activeTab !== "prompts" && (
+      {/* Filter - Only show for non-prompts and non-chat tabs */}
+      {activeTab !== "prompts" && activeTab !== "chat" && (
         <div className="mb-3">
           <label
             className="text-xs mb-1 block tracking-wider"
@@ -123,8 +123,10 @@ export function RightSideTabs({ agents }: RightSideTabsProps) {
               <TradesContent agents={agents} filterAgent={filterAgent} />
             ) : activeTab === "decisions" ? (
               <DecisionsContent agents={agents} filterAgent={filterAgent} />
-            ) : (
+            ) : activeTab === "prompts" ? (
               <PromptsContent agents={agents} filterAgent={filterAgent} />
+            ) : (
+              <ChatContent />
             )}
           </div>
     </div>
@@ -692,6 +694,169 @@ function PromptsContent({
   }
 
   return <PromptEditor agentId={selectedAgentId} />;
+}
+
+function ChatContent() {
+  const language = useLanguage((s) => s.language);
+  const t = getTranslation(language).chat;
+  const [messages, setMessages] = useState<Array<{ role: "user" | "assistant"; content: string; timestamp: Date }>>([]);
+  const [input, setInput] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const messagesEndRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  const handleSend = async () => {
+    if (!input.trim() || isLoading) return;
+
+    const userMessage = input.trim();
+    setInput("");
+    setMessages((prev) => [...prev, { role: "user", content: userMessage, timestamp: new Date() }]);
+    setIsLoading(true);
+
+    try {
+      const response = await api.chat(userMessage);
+      setMessages((prev) => [...prev, { role: "assistant", content: response.message, timestamp: new Date() }]);
+    } catch (error) {
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: "assistant",
+          content: t.errorMessage || "Failed to get response. Please try again.",
+          timestamp: new Date(),
+        },
+      ]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
+  };
+
+  return (
+    <div className="flex flex-col h-full">
+      {/* Messages */}
+      <div className="flex-1 overflow-y-auto mb-3 space-y-3">
+        {messages.length === 0 ? (
+          <div className="text-center py-12" style={{ color: "var(--muted-text)" }}>
+            <div className="text-4xl mb-2 opacity-50">💬</div>
+            <p className="text-sm mb-2">{t.welcome}</p>
+            <p className="text-xs">{t.exampleQuestions}</p>
+            <div className="mt-4 space-y-2 text-left max-w-md mx-auto">
+              <button
+                onClick={() => setInput(t.example1 || "What are some basic trading prompt suggestions?")}
+                className="w-full text-left px-3 py-2 rounded border text-xs hover:opacity-80 transition-opacity"
+                style={{
+                  background: "var(--panel-bg)",
+                  borderColor: "var(--chip-border)",
+                  color: "var(--foreground)",
+                }}
+              >
+                {t.example1 || "What are some basic trading prompt suggestions?"}
+              </button>
+              <button
+                onClick={() => setInput(t.example2 || "How does risk management work in this platform?")}
+                className="w-full text-left px-3 py-2 rounded border text-xs hover:opacity-80 transition-opacity"
+                style={{
+                  background: "var(--panel-bg)",
+                  borderColor: "var(--chip-border)",
+                  color: "var(--foreground)",
+                }}
+              >
+                {t.example2 || "How does risk management work in this platform?"}
+              </button>
+            </div>
+          </div>
+        ) : (
+          messages.map((msg, idx) => (
+            <div
+              key={idx}
+              className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
+            >
+              <div
+                className={`max-w-[80%] rounded-lg px-3 py-2 text-xs ${
+                  msg.role === "user"
+                    ? "rounded-br-none"
+                    : "rounded-bl-none"
+                }`}
+                style={{
+                  background: msg.role === "user" ? "var(--brand-accent)" : "var(--panel-bg)",
+                  borderColor: "var(--chip-border)",
+                  borderWidth: "1px",
+                  color: msg.role === "user" ? "#fff" : "var(--foreground)",
+                }}
+              >
+                <div className="whitespace-pre-wrap terminal-text">{msg.content}</div>
+                <div
+                  className="text-[10px] mt-1 opacity-70"
+                  style={{ color: msg.role === "user" ? "rgba(255,255,255,0.7)" : "var(--muted-text)" }}
+                >
+                  {msg.timestamp.toLocaleTimeString()}
+                </div>
+              </div>
+            </div>
+          ))
+        )}
+        {isLoading && (
+          <div className="flex justify-start">
+            <div
+              className="rounded-lg px-3 py-2 text-xs rounded-bl-none"
+              style={{
+                background: "var(--panel-bg)",
+                borderColor: "var(--chip-border)",
+                borderWidth: "1px",
+                color: "var(--foreground)",
+              }}
+            >
+              <div className="flex items-center gap-2">
+                <div className="animate-pulse">●</div>
+                <span>{t.thinking || "Thinking..."}</span>
+              </div>
+            </div>
+          </div>
+        )}
+        <div ref={messagesEndRef} />
+      </div>
+
+      {/* Input */}
+      <div className="flex gap-2">
+        <textarea
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyPress={handleKeyPress}
+          placeholder={t.placeholder || "Type your message..."}
+          className="flex-1 px-3 py-2 rounded border text-xs resize-none"
+          style={{
+            background: "var(--panel-bg)",
+            borderColor: "var(--chip-border)",
+            color: "var(--foreground)",
+          }}
+          rows={2}
+          disabled={isLoading}
+        />
+        <button
+          onClick={handleSend}
+          disabled={!input.trim() || isLoading}
+          className="px-4 py-2 rounded chip-btn uppercase text-xs font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+          style={{
+            background: input.trim() && !isLoading ? "var(--btn-active-bg)" : "var(--panel-bg)",
+            color: input.trim() && !isLoading ? "var(--btn-active-fg)" : "var(--btn-inactive-fg)",
+            borderColor: "var(--chip-border)",
+            borderWidth: "1px",
+          }}
+        >
+          {t.send || "Send"}
+        </button>
+      </div>
+    </div>
+  );
 }
 
 

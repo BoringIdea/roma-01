@@ -28,6 +28,7 @@ import os
 from roma_trading.config import get_settings
 from roma_trading.agents import AgentManager
 from roma_trading.core.analytics import TradingAnalytics
+from roma_trading.core.chat_service import initialize_chat_service, get_chat_service
 
 
 # Global agent manager
@@ -44,6 +45,9 @@ async def lifespan(app: FastAPI):
         await agent_manager.load_agents_from_config()
         asyncio.create_task(agent_manager.start_all())
         logger.info("All agents started successfully")
+        
+        # Initialize chat service
+        initialize_chat_service(agent_manager)
     except Exception as e:
         logger.error(f"Failed to start agents: {e}", exc_info=True)
     
@@ -340,6 +344,11 @@ class CustomPromptUpdate(BaseModel):
     additional_rules: Optional[str] = None
 
 
+class ChatMessage(BaseModel):
+    """Chat message request model"""
+    message: str
+
+
 @app.get("/api/agents/{agent_id}/prompts")
 async def get_custom_prompts(agent_id: str):
     """
@@ -405,6 +414,34 @@ async def get_full_prompt_preview(agent_id: str):
     except Exception as e:
         logger.error(f"Failed to build prompt preview: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/chat")
+async def chat_with_ai(chat_request: ChatMessage):
+    """
+    Chat with AI assistant about trading strategies, prompts, and platform features.
+    
+    Args:
+        chat_request: Chat message from user
+    
+    Returns:
+        AI assistant's response
+    """
+    try:
+        chat_service = get_chat_service()
+        response = await chat_service.chat(chat_request.message)
+        
+        return {
+            "status": "success",
+            "message": response
+        }
+    
+    except RuntimeError as e:
+        logger.error(f"Chat service error: {e}")
+        raise HTTPException(status_code=503, detail=str(e))
+    except Exception as e:
+        logger.error(f"Failed to process chat message: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Failed to process chat message")
 
 
 @app.put("/api/agents/{agent_id}/prompts")
