@@ -345,6 +345,106 @@ class AsterToolkit(BaseDEXToolkit):
         except Exception as e:
             logger.warning(f"Failed to cancel orders for {symbol}: {e}")
 
+    async def place_take_profit_stop_loss(
+        self,
+        symbol: str,
+        side: str,
+        quantity: float,
+        entry_price: float,
+        take_profit_pct: float | None,
+        stop_loss_pct: float | None,
+    ) -> Dict:
+        """Place take-profit and stop-loss orders for the given position."""
+        results: Dict[str, Dict] = {}
+
+        if quantity <= 0 or entry_price <= 0:
+            logger.warning("Cannot place TP/SL orders due to non-positive quantity or entry price")
+            return results
+
+        precision = await self._get_precision(symbol)
+        qty_str = self._format_value(
+            quantity,
+            precision["quantity_precision"],
+            precision["step_size"],
+        )
+
+        def _position_side() -> str:
+            if not self.hedge_mode:
+                return "BOTH"
+            return "LONG" if side == "long" else "SHORT"
+
+        # Take-profit order
+        if take_profit_pct and take_profit_pct > 0:
+            if side == "long":
+                tp_price = entry_price * (1 + take_profit_pct / 100)
+                order_side = "SELL"
+            else:
+                tp_price = entry_price * (1 - take_profit_pct / 100)
+                order_side = "BUY"
+
+            if tp_price > 0:
+                stop_price_str = self._format_value(
+                    tp_price,
+                    precision["price_precision"],
+                    precision["tick_size"],
+                )
+                params = {
+                    "symbol": symbol,
+                    "side": order_side,
+                    "type": "TAKE_PROFIT_MARKET",
+                    "stopPrice": stop_price_str,
+                    "quantity": qty_str,
+                    "reduceOnly": "true",
+                }
+                if self.hedge_mode:
+                    params["positionSide"] = _position_side()
+
+                try:
+                    result = await self._request("POST", "/fapi/v3/order", params)
+                    results["take_profit"] = result
+                    logger.info(
+                        f"Placed take-profit for {symbol} {side}: stopPrice={stop_price_str}, quantity={qty_str}"
+                    )
+                except Exception as exc:  # pragma: no cover - runtime safety
+                    logger.error(f"Failed to place take-profit order: {exc}")
+
+        # Stop-loss order
+        if stop_loss_pct and stop_loss_pct > 0:
+            if side == "long":
+                sl_price = entry_price * (1 - stop_loss_pct / 100)
+                order_side = "SELL"
+            else:
+                sl_price = entry_price * (1 + stop_loss_pct / 100)
+                order_side = "BUY"
+
+            if sl_price > 0:
+                stop_price_str = self._format_value(
+                    sl_price,
+                    precision["price_precision"],
+                    precision["tick_size"],
+                )
+                params = {
+                    "symbol": symbol,
+                    "side": order_side,
+                    "type": "STOP_MARKET",
+                    "stopPrice": stop_price_str,
+                    "quantity": qty_str,
+                    "reduceOnly": "true",
+                }
+                if self.hedge_mode:
+                    params["positionSide"] = _position_side()
+
+                try:
+                    result = await self._request("POST", "/fapi/v3/order", params)
+                    results["stop_loss"] = result
+                    logger.info(
+                        f"Placed stop-loss for {symbol} {side}: stopPrice={stop_price_str}, quantity={qty_str}"
+                    )
+                except Exception as exc:  # pragma: no cover - runtime safety
+                    logger.error(f"Failed to place stop-loss order: {exc}")
+
+        return results
+
     async def open_long(self, symbol: str, quantity: float, leverage: int) -> Dict:
         """Open a long position."""
         # Cancel any existing orders
@@ -450,8 +550,8 @@ class AsterToolkit(BaseDEXToolkit):
             "status": result.get("status"),
         }
 
-    async def close_position(self, symbol: str, side: str) -> Dict:
-        """Close an existing position."""
+    async def close_position(self, symbol: str, side: str, quantity: float | None = None) -> Dict:
+        """Close an existing position. Optional partial quantity supported."""
         # Get current position
         positions = await self.get_positions()
         position = next((p for p in positions if p["symbol"] == symbol and p["side"] == side), None)
@@ -459,7 +559,10 @@ class AsterToolkit(BaseDEXToolkit):
         if not position:
             raise ValueError(f"No {side} position found for {symbol}")
         
-        quantity = position["position_amt"]
+        position_amt = position["position_amt"]
+        target_qty = position_amt if quantity is None else min(abs(quantity), position_amt)
+        if target_qty <= 0:
+            raise ValueError("Close quantity must be positive")
         price = await self.get_market_price(symbol)
         precision = await self._get_precision(symbol)
         
@@ -473,7 +576,7 @@ class AsterToolkit(BaseDEXToolkit):
             precision["tick_size"]
         )
         qty_str = self._format_value(
-            quantity,
+            target_qty,
             precision["quantity_precision"],
             precision["step_size"]
         )
@@ -488,6 +591,7 @@ class AsterToolkit(BaseDEXToolkit):
             "timeInForce": "GTC",
             "quantity": qty_str,
             "price": price_str,
+            "reduceOnly": "true",
         }
         
         # Add positionSide only if hedge mode is enabled
@@ -499,13 +603,16 @@ class AsterToolkit(BaseDEXToolkit):
         result = await self._request("POST", "/fapi/v3/order", order_params)
         
         # Cancel remaining orders
-        await self._cancel_all_orders(symbol)
+        if abs(target_qty - position_amt) < 1e-9:
+            await self._cancel_all_orders(symbol)
         
         return {
             "order_id": result.get("orderId"),
             "symbol": symbol,
             "closed_side": side,
             "quantity": qty_str,
+            "closed_quantity": target_qty,
+            "fully_closed": abs(target_qty - position_amt) < 1e-9,
             "status": result.get("status"),
         }
 

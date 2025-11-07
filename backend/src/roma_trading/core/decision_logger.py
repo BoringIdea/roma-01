@@ -115,6 +115,7 @@ class DecisionLogger:
         symbol: str,
         side: str,
         close_price: float,
+        quantity: Optional[float] = None,
     ) -> Optional[Dict]:
         """
         Record a position closing and calculate PnL.
@@ -128,19 +129,24 @@ class DecisionLogger:
             logger.warning(f"No open position found for {key}")
             return None
         
-        open_pos = self.open_positions.pop(key)
+        open_pos = self.open_positions[key]
         
         # Calculate PnL
         entry_price = open_pos["entry_price"]
-        quantity = open_pos["quantity"]
+        open_quantity = open_pos["quantity"]
         leverage = open_pos["leverage"]
+
+        close_quantity = open_quantity if quantity is None else min(open_quantity, max(0.0, quantity))
+        if close_quantity <= 0:
+            logger.warning("Close quantity must be positive to record trade")
+            return None
         
         if side == "long":
             pnl_pct = (close_price - entry_price) / entry_price * 100
-            pnl_usdt = (close_price - entry_price) * quantity * leverage
+            pnl_usdt = (close_price - entry_price) * close_quantity * leverage
         else:  # short
             pnl_pct = (entry_price - close_price) / entry_price * 100
-            pnl_usdt = (entry_price - close_price) * quantity * leverage
+            pnl_usdt = (entry_price - close_price) * close_quantity * leverage
         
         # Create trade record
         trade = {
@@ -148,7 +154,7 @@ class DecisionLogger:
             "side": side,
             "entry_price": entry_price,
             "close_price": close_price,
-            "quantity": quantity,
+            "quantity": close_quantity,
             "leverage": leverage,
             "open_time": open_pos["open_time"],
             "close_time": datetime.now().isoformat(),
@@ -161,7 +167,14 @@ class DecisionLogger:
         # Save trade history to file
         self._save_trade_history()
         
-        logger.info(f"Recorded closed position {key}: PnL={pnl_pct:+.2f}% (${pnl_usdt:+.2f})")
+        logger.info(f"Recorded closed position {key}: quantity={close_quantity:.6f}, PnL={pnl_pct:+.2f}% (${pnl_usdt:+.2f})")
+
+        remaining_quantity = open_quantity - close_quantity
+        if remaining_quantity <= 1e-9:
+            self.open_positions.pop(key, None)
+        else:
+            open_pos["quantity"] = remaining_quantity
+            self.open_positions[key] = open_pos
         
         return trade
 

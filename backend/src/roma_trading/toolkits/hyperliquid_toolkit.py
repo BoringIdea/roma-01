@@ -430,6 +430,78 @@ class HyperliquidToolkit(BaseDEXToolkit):
         except Exception as e:
             logger.warning(f"Failed to set leverage for {symbol}: {e}")
     
+    async def place_take_profit_stop_loss(
+        self,
+        symbol: str,
+        side: str,
+        quantity: float,
+        entry_price: float,
+        take_profit_pct: float | None,
+        stop_loss_pct: float | None,
+    ) -> Dict:
+        """Place take-profit and stop-loss trigger orders on Hyperliquid."""
+        results: Dict[str, Dict] = {}
+
+        if quantity <= 0 or entry_price <= 0:
+            logger.warning("Cannot place TP/SL orders due to non-positive quantity or entry price")
+            return results
+
+        normalized = self._normalize_symbol(symbol)
+        precision = self._get_precision(symbol)
+        formatted_qty = round(quantity, precision)
+
+        if formatted_qty <= 0:
+            logger.warning("Formatted quantity is zero after precision adjustment; skipping TP/SL placement")
+            return results
+
+        def _place_trigger(
+            label: str,
+            trigger_px: float,
+            is_buy: bool,
+            tpsl: str,
+        ) -> None:
+            if trigger_px <= 0:
+                logger.warning(f"Skipping {label} for {symbol}: trigger price non-positive")
+                return
+
+            formatted_px = self._format_price(symbol, trigger_px)
+            order_result = self.exchange.order(
+                normalized,
+                is_buy=is_buy,
+                sz=formatted_qty,
+                limit_px=formatted_px,
+                order_type={
+                    "trigger": {
+                        "triggerPx": formatted_px,
+                        "isMarket": True,
+                        "tpsl": tpsl,
+                    }
+                },
+                reduce_only=True,
+            )
+            results[label] = order_result
+            logger.info(
+                f"Placed {label} for {symbol} {side}: triggerPx={formatted_px}, quantity={formatted_qty}"
+            )
+
+        if take_profit_pct and take_profit_pct > 0:
+            if side == "long":
+                tp_price = entry_price * (1 + take_profit_pct / 100)
+                _place_trigger("take_profit", tp_price, is_buy=False, tpsl="tp")
+            else:
+                tp_price = entry_price * (1 - take_profit_pct / 100)
+                _place_trigger("take_profit", tp_price, is_buy=True, tpsl="tp")
+
+        if stop_loss_pct and stop_loss_pct > 0:
+            if side == "long":
+                sl_price = entry_price * (1 - stop_loss_pct / 100)
+                _place_trigger("stop_loss", sl_price, is_buy=False, tpsl="sl")
+            else:
+                sl_price = entry_price * (1 + stop_loss_pct / 100)
+                _place_trigger("stop_loss", sl_price, is_buy=True, tpsl="sl")
+
+        return results
+
     async def open_long(self, symbol: str, quantity: float, leverage: int) -> Dict:
         """Open a long position."""
         try:
@@ -653,8 +725,8 @@ class HyperliquidToolkit(BaseDEXToolkit):
             logger.error(f"Failed to open short position for {symbol}: {e}", exc_info=True)
             raise
     
-    async def close_position(self, symbol: str, side: str) -> Dict:
-        """Close an existing position."""
+    async def close_position(self, symbol: str, side: str, quantity: float | None = None) -> Dict:
+        """Close an existing position. Supports optional partial quantity."""
         try:
             # Get current position
             positions = await self.get_positions()
@@ -667,7 +739,10 @@ class HyperliquidToolkit(BaseDEXToolkit):
                 raise ValueError(f"No {side} position found for {symbol}")
             
             normalized = self._normalize_symbol(symbol)
-            quantity = position["position_amt"]
+            position_amt = position["position_amt"]
+            target_qty = position_amt if quantity is None else min(abs(quantity), position_amt)
+            if target_qty <= 0:
+                raise ValueError("Close quantity must be positive")
             price = await self.get_market_price(symbol)
             
             # Opposite side to close
@@ -681,7 +756,7 @@ class HyperliquidToolkit(BaseDEXToolkit):
             
             # Format quantity
             precision = self._get_precision(symbol)
-            formatted_qty = round(quantity, precision)
+            formatted_qty = round(target_qty, precision)
             
             logger.info(f"Closing {side.upper()} {symbol}: quantity={formatted_qty}")
             
@@ -708,6 +783,8 @@ class HyperliquidToolkit(BaseDEXToolkit):
                             "symbol": symbol,
                             "closed_side": side,
                             "quantity": str(formatted_qty),
+                            "closed_quantity": formatted_qty,
+                            "fully_closed": abs(target_qty - position_amt) < 1e-9,
                             "status": "resting",
                         }
                     elif "filled" in status:
@@ -716,6 +793,8 @@ class HyperliquidToolkit(BaseDEXToolkit):
                             "symbol": symbol,
                             "closed_side": side,
                             "quantity": str(formatted_qty),
+                            "closed_quantity": formatted_qty,
+                            "fully_closed": abs(target_qty - position_amt) < 1e-9,
                             "status": "filled",
                         }
             

@@ -392,8 +392,15 @@ strategy:
     max_daily_loss_pct: 15
     stop_loss_pct: 3
     take_profit_pct: 10
+
+  advanced_orders:
+    enable_take_profit: false      # true = Enable take profit
+    take_profit_pct: 5.0           # Take profit trigger percentage, based on entry price
+    enable_stop_loss: false        # true = Enable stop loss
+    stop_loss_pct: 2.0             # Stop loss trigger percentage, based on entry price
   
   trading_style: "balanced"
+  
   
   custom_prompts:
     enabled: false

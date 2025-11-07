@@ -104,6 +104,9 @@ class TradingAgent:
         
         # Initialize performance analyzer
         self.performance = PerformanceAnalyzer()
+
+        # Advanced order configuration
+        self.advanced_orders = self.config["strategy"].get("advanced_orders", {})
         
         # Initialize DSPy LLM
         self._init_llm()
@@ -492,12 +495,16 @@ SHORT example (important - use this in downtrends!):
 Closing example:
 {{"action": "close_long", "symbol": "SOLUSDT", "confidence": 0.85, "reasoning": "Take profit target reached"}}
 
+Partial close example:
+{{"action": "close_short", "symbol": "ETHUSDT", "close_quantity_pct": 0.4, "confidence": 0.70, "reasoning": "Reduce exposure after partial target hit"}}
+
 **REQUIRED FIELDS:**
 - action: open_long, open_short, close_long, close_short, hold, wait
 - symbol: The trading pair (e.g., "BTCUSDT")
 - confidence: Your confidence level in this decision (0.0 to 1.0, where 1.0 = 100% confident)
 - reasoning: Brief explanation including market regime and signal confirmation
 - For open positions: also include leverage, position_size_usd, stop_loss, take_profit
+- For closing positions: optionally include close_quantity (absolute size) or close_quantity_pct (0-1 or 0-100) to execute a partial close; omit both to close the full position
 
 **IMPORTANT - SHORT POSITIONS:**
 - In downtrends, you should actively consider open_short actions
@@ -604,9 +611,9 @@ Closing example:
                 elif action == "open_short":
                     await self._execute_open_short(decision)
                 elif action == "close_long":
-                    await self._execute_close(symbol, "long")
+                    await self._execute_close(decision, "long")
                 elif action == "close_short":
-                    await self._execute_close(symbol, "short")
+                    await self._execute_close(decision, "short")
                 elif action in ["hold", "wait"]:
                     logger.info(f"{action.upper()}: {decision.get('reasoning', '')}")
             except Exception as e:
@@ -740,6 +747,14 @@ Closing example:
             quantity=quantity,
             leverage=leverage,
         )
+
+        await self._maybe_place_protective_orders(
+            symbol=symbol,
+            side="long",
+            order_result=result,
+            fallback_quantity=quantity,
+            fallback_price=price,
+        )
         
         logger.info(f"✅ Opened LONG {symbol}: {quantity:.6f} @ {leverage}x")
 
@@ -866,19 +881,119 @@ Closing example:
             quantity=quantity,
             leverage=leverage,
         )
+
+        await self._maybe_place_protective_orders(
+            symbol=symbol,
+            side="short",
+            order_result=result,
+            fallback_quantity=quantity,
+            fallback_price=price,
+        )
         
         logger.info(f"✅ Opened SHORT {symbol}: {quantity:.6f} @ {leverage}x")
 
-    async def _execute_close(self, symbol: str, side: str):
-        """Execute close position."""
+    async def _execute_close(self, decision: Dict, side: str):
+        """Execute close position (supports partial close)."""
+        symbol = decision["symbol"]
         price = await self.dex.get_market_price(symbol)
+        positions = await self.dex.get_positions()
+        position = next((p for p in positions if p["symbol"] == symbol and p["side"] == side), None)
+        if not position:
+            logger.error(f"No {side} position found for {symbol} to close")
+            return
+
+        position_amt = position["position_amt"]
+
+        close_quantity = None
+        if "close_quantity" in decision:
+            try:
+                close_quantity = float(decision["close_quantity"])
+            except (TypeError, ValueError):
+                logger.warning("Invalid close_quantity provided; defaulting to full close")
+                close_quantity = None
+        elif "close_quantity_pct" in decision:
+            try:
+                pct = float(decision["close_quantity_pct"])
+                if pct <= 0:
+                    close_quantity = None
+                else:
+                    if pct > 1:
+                        pct = pct / 100.0
+                    close_quantity = position_amt * min(pct, 1.0)
+            except (TypeError, ValueError):
+                logger.warning("Invalid close_quantity_pct provided; defaulting to full close")
+                close_quantity = None
+
+        if close_quantity is not None:
+            close_quantity = min(position_amt, max(0.0, close_quantity))
+            if close_quantity <= 1e-12:
+                logger.warning("Computed close quantity too small; skipping close action")
+                return
         
-        result = await self.dex.close_position(symbol, side)
+        result = await self.dex.close_position(symbol, side, quantity=close_quantity)
+        closed_quantity = result.get("closed_quantity") if isinstance(result, dict) else None
+        if closed_quantity is None:
+            closed_quantity = close_quantity if close_quantity is not None else position_amt
+        
+        fully_closed = result.get("fully_closed") if isinstance(result, dict) else None
+        if fully_closed is None:
+            fully_closed = abs(closed_quantity - position_amt) < 1e-9
         
         # Record close
-        self.logger_module.record_close_position(symbol, side, price)
+        self.logger_module.record_close_position(symbol, side, price, closed_quantity)
         
-        logger.info(f"✅ Closed {side.upper()} {symbol}")
+        # If partial close and automatic TP/SL is enabled, we can place new TP/SL orders(current version does not re-place)
+        
+        action_label = "partial close" if not fully_closed else "full close"
+        logger.info(f"✅ {action_label} {side.upper()} {symbol}: quantity={closed_quantity:.6f}")
+
+    async def _maybe_place_protective_orders(
+        self,
+        symbol: str,
+        side: str,
+        order_result: Dict,
+        fallback_quantity: float,
+        fallback_price: float,
+    ) -> None:
+        """Conditionally place take-profit / stop-loss orders after opening a position."""
+        if not self.advanced_orders:
+            return
+
+        tp_enabled = self.advanced_orders.get("enable_take_profit", False)
+        sl_enabled = self.advanced_orders.get("enable_stop_loss", False)
+
+        take_profit_pct = self.advanced_orders.get("take_profit_pct") if tp_enabled else None
+        stop_loss_pct = self.advanced_orders.get("stop_loss_pct") if sl_enabled else None
+
+        if take_profit_pct in (None, 0) and stop_loss_pct in (None, 0):
+            return
+
+        # Parse executed quantity and entry price from order result
+        quantity = fallback_quantity
+        entry_price = fallback_price
+
+        try:
+            quantity_str = order_result.get("quantity") if order_result else None
+            price_str = order_result.get("price") if order_result else None
+
+            if quantity_str is not None:
+                quantity = float(quantity_str)
+            if price_str is not None:
+                entry_price = float(price_str)
+        except (TypeError, ValueError):
+            logger.debug("Unable to parse quantity/price from order result; using fallback values")
+
+        try:
+            await self.dex.place_take_profit_stop_loss(
+                symbol=symbol,
+                side=side,
+                quantity=quantity,
+                entry_price=entry_price,
+                take_profit_pct=take_profit_pct,
+                stop_loss_pct=stop_loss_pct,
+            )
+        except Exception as exc:  # pragma: no cover - runtime safety
+            logger.error(f"Failed to place protective orders for {symbol}: {exc}")
 
     def get_status(self) -> Dict:
         """Get agent status for API."""

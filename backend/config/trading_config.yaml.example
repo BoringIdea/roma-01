@@ -134,6 +134,11 @@ agents:
         max_daily_loss_pct: 15
         stop_loss_pct: 3
         take_profit_pct: 10
+      advanced_orders:
+        enable_take_profit: false
+        take_profit_pct: 5.0
+        enable_stop_loss: false
+        stop_loss_pct: 2.0
       trading_style: "balanced"
       custom_prompts:
         enabled: false
