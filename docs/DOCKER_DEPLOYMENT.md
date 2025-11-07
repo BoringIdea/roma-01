@@ -33,24 +33,25 @@ cp backend/.env.example .env
 编辑 `.env` 文件，填入你的配置：
 
 ```bash
-# Aster Finance DEX 配置
-ASTER_USER=your_username
-ASTER_SIGNER=0x1234...
-ASTER_PRIVATE_KEY=0xabcd...
+# LLM Provider API Keys (set at least one)
+DEEPSEEK_API_KEY=your_deepseek_api_key
+QWEN_API_KEY=your_qwen_api_key
+ANTHROPIC_API_KEY=your_anthropic_api_key
+OPENAI_API_KEY=your_openai_api_key
+XAI_API_KEY=your_xai_api_key
+GOOGLE_API_KEY=your_google_api_key
 
-# LLM API Keys（至少配置一个）
-DEEPSEEK_API_KEY=sk-...
-QWEN_API_KEY=sk-...
-ANTHROPIC_API_KEY=sk-ant-...
-XAI_API_KEY=xai-...
-GOOGLE_API_KEY=AIza...
-OPENAI_API_KEY=sk-proj-...
+# Aster Finance Accounts (suffix with _01/_02...)
+ASTER_USER_01=0xYourAsterUserAddress01
+ASTER_SIGNER_01=0xYourAsterSignerAddress01
+ASTER_PRIVATE_KEY_01=your_aster_private_key_01
 
-# API 配置
-API_HOST=0.0.0.0
-API_PORT=8000
-CORS_ORIGINS=http://localhost:3000
+# Hyperliquid Accounts (optional)
+HL_SECRET_KEY_01=your_hyperliquid_secret_key_01
+HL_ACCOUNT_ADDRESS_01=0xYourHyperliquidAccountAddress01
 ```
+
+> 提示：可以按需新增 `ASTER_USER_02`、`HL_SECRET_KEY_02` 等条目；不要将 `.env` 提交到版本库。
 
 #### 2. 构建并启动服务
 
@@ -94,29 +95,23 @@ docker-compose logs -f frontend
 - **API 文档**: http://localhost:8000/docs
 - **健康检查**: http://localhost:8000/health
 
-#### 4. 启动交易智能体
+#### 4. 验证交易智能体
 
-进入后端容器：
+后端容器启动时会根据 `backend/config/trading_config.yaml` 中的配置自动加载并运行所有交易智能体，无需手动在容器内执行额外命令。
 
-```bash
-docker-compose exec backend bash
-```
+- 通过日志确认：
 
-在容器内启动智能体：
+  ```bash
+  docker-compose logs -f backend | grep "All agents started successfully"
+  ```
 
-```bash
-# 启动 DeepSeek 智能体
-python -m roma_trading.cli start deepseek-chat-v3.1
+- 通过 API 确认：
 
-# 启动多个智能体
-python -m roma_trading.cli start deepseek-chat-v3.1 qwen-max-latest
-```
+  ```bash
+  curl http://localhost:8000/api/agents
+  ```
 
-退出容器（智能体会继续在后台运行）：
-
-```bash
-exit
-```
+如需调整智能体配置，修改 `backend/config/trading_config.yaml` 后重启后端服务即可生效。
 
 ### 管理命令
 
@@ -369,24 +364,25 @@ cp backend/.env.example .env
 Edit `.env` file with your configuration:
 
 ```bash
-# Aster Finance DEX Configuration
-ASTER_USER=your_username
-ASTER_SIGNER=0x1234...
-ASTER_PRIVATE_KEY=0xabcd...
+# LLM Provider API Keys (set at least one)
+DEEPSEEK_API_KEY=your_deepseek_api_key
+QWEN_API_KEY=your_qwen_api_key
+ANTHROPIC_API_KEY=your_anthropic_api_key
+OPENAI_API_KEY=your_openai_api_key
+XAI_API_KEY=your_xai_api_key
+GOOGLE_API_KEY=your_google_api_key
 
-# LLM API Keys (configure at least one)
-DEEPSEEK_API_KEY=sk-...
-QWEN_API_KEY=sk-...
-ANTHROPIC_API_KEY=sk-ant-...
-XAI_API_KEY=xai-...
-GOOGLE_API_KEY=AIza...
-OPENAI_API_KEY=sk-proj-...
+# Aster Finance Accounts (suffix with _01/_02...)
+ASTER_USER_01=0xYourAsterUserAddress01
+ASTER_SIGNER_01=0xYourAsterSignerAddress01
+ASTER_PRIVATE_KEY_01=your_aster_private_key_01
 
-# API Configuration
-API_HOST=0.0.0.0
-API_PORT=8000
-CORS_ORIGINS=http://localhost:3000
+# Hyperliquid Accounts (optional)
+HL_SECRET_KEY_01=your_hyperliquid_secret_key_01
+HL_ACCOUNT_ADDRESS_01=0xYourHyperliquidAccountAddress01
 ```
+
+> Tip: add `ASTER_USER_02`, `HL_SECRET_KEY_02`, etc. when you have multiple accounts; keep `.env` out of version control.
 
 #### 2. Build and Start Services
 
@@ -430,29 +426,23 @@ Access services:
 - **API Docs**: http://localhost:8000/docs
 - **Health Check**: http://localhost:8000/health
 
-#### 4. Start Trading Agents
+#### 4. Verify Trading Agents
 
-Enter backend container:
+The backend container automatically loads and starts every trading agent defined in `backend/config/trading_config.yaml`, so no extra CLI steps are required.
 
-```bash
-docker-compose exec backend bash
-```
+- Check logs:
 
-Start agents inside container:
+  ```bash
+  docker-compose logs -f backend | grep "All agents started successfully"
+  ```
 
-```bash
-# Start DeepSeek agent
-python -m roma_trading.cli start deepseek-chat-v3.1
+- Query the API:
 
-# Start multiple agents
-python -m roma_trading.cli start deepseek-chat-v3.1 qwen-max-latest
-```
+  ```bash
+  curl http://localhost:8000/api/agents
+  ```
 
-Exit container (agents will continue running in background):
-
-```bash
-exit
-```
+To change agent behavior, update `backend/config/trading_config.yaml` and restart the backend service.
 
 ### Management Commands
 
