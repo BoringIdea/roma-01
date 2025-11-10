@@ -16,7 +16,16 @@ import dspy
 from loguru import logger
 
 from roma_trading.toolkits import AsterToolkit, TechnicalAnalysisToolkit
-from roma_trading.core import DecisionLogger, PerformanceAnalyzer
+from roma_trading.config import get_settings
+from roma_trading.core import (
+    DecisionLogger,
+    PerformanceAnalyzer,
+    build_strategy_request,
+    get_remote_strategy_client,
+    RemoteStrategyError,
+    RemoteStrategyPaymentError,
+    RemoteStrategyConfigError,
+)
 
 # Import HyperliquidToolkit if available
 try:
@@ -249,6 +258,22 @@ class TradingAgent:
             # 2. Fetch account and positions
             account = await self.dex.get_account_balance()
             positions = await self.dex.get_positions()
+
+            settings = get_settings()
+
+            if settings.remote_strategy_enabled:
+                remote_handled = await self._handle_remote_strategy(
+                    settings=settings,
+                    account=account,
+                    positions=positions,
+                )
+                if remote_handled:
+                    logger.info(
+                        "Remote strategy fulfilled for agent %s cycle %s; skipping local execution",
+                        self.agent_id,
+                        self.cycle_count,
+                    )
+                    return
             
             # Calculate this agent's budget
             max_usage_pct = self.config["strategy"].get("max_account_usage_pct", 100)
@@ -299,6 +324,81 @@ class TradingAgent:
             logger.debug(f"🔓 {self.agent_id} released trading lock")
         
         logger.info(f"Cycle #{self.cycle_count} complete\n")
+
+    async def _handle_remote_strategy(self, settings, account: Dict, positions: List[Dict]) -> bool:
+        """Attempt to fetch remote strategy; return True if handled and local cycle should stop."""
+
+        try:
+            remote_client = await get_remote_strategy_client()
+        except RemoteStrategyConfigError as exc:
+            logger.error("Remote strategy disabled due to configuration error: {}", exc)
+            return False
+
+        strategy_cfg = self.config.get("strategy", {})
+        exchange_cfg = self.config.get("exchange", {})
+
+        try:
+            request_payload = build_strategy_request(
+                agent_id=self.agent_id,
+                exchange_cfg=exchange_cfg,
+                strategy_cfg=strategy_cfg,
+                account_snapshot=account,
+                positions=positions,
+                cycle=self.cycle_count,
+            )
+        except Exception as exc:  # pragma: no cover - defensive
+            logger.error("Failed to construct remote strategy request: {}", exc)
+            fallback_mode = (settings.remote_fallback_mode or "local").lower()
+            return fallback_mode != "local"
+
+        try:
+            result = await remote_client.request_strategy(request_payload)
+        except RemoteStrategyPaymentError as exc:
+            logger.error("Remote strategy payment failed: {}", exc)
+            fallback_mode = (settings.remote_fallback_mode or "local").lower()
+            if fallback_mode == "error":
+                raise
+            if fallback_mode == "wait":
+                return True
+            return False
+        except RemoteStrategyError as exc:
+            logger.error("Remote strategy request failed: {}", exc)
+            fallback_mode = (settings.remote_fallback_mode or "local").lower()
+            if fallback_mode == "error":
+                raise
+            if fallback_mode == "wait":
+                return True
+            return False
+        except Exception as exc:  # pragma: no cover - unexpected
+            logger.exception("Unexpected error while requesting remote strategy: {}", exc)
+            fallback_mode = (settings.remote_fallback_mode or "local").lower()
+            if fallback_mode == "error":
+                raise
+            if fallback_mode == "wait":
+                return True
+            return False
+
+        self.logger_module.log_remote_strategy(
+            cycle=self.cycle_count,
+            account=account,
+            positions=positions,
+            payload=result.to_logging_payload(),
+        )
+
+        strategy = result.response.strategy
+        logger.info("Remote strategy summary: %s", strategy.summary)
+        if strategy.steps:
+            for idx, step in enumerate(strategy.steps, start=1):
+                logger.info("Remote step %d: %s", idx, step)
+
+        fallback_mode = (settings.remote_fallback_mode or "local").lower()
+        if fallback_mode == "local":
+            # After successful remote strategy we simply skip local execution.
+            return True
+        if fallback_mode == "wait":
+            return True
+
+        return True
 
     async def _fetch_market_data(self, positions: List[Dict]) -> Dict:
         """Fetch market data for relevant symbols."""

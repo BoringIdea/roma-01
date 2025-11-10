@@ -19,6 +19,39 @@ api:
   port: 8000
 
 # ============================================
+# x402 Server Configuration (Seller mode)
+# ============================================
+x402:
+  enabled: false                     # Set to true to enable /x402 paid endpoint
+  price_usdc: 5.0                    # Fee per request (USDC)
+  network: ${X402_NETWORK:-base-sepolia}
+  pay_to_address: ${X402_PAY_TO_ADDRESS}
+  facilitator_url: ${X402_FACILITATOR_URL}  # Optional custom facilitator URL
+  payment_description: "roma-01 strategy recommendation"
+  resource_description: "AI-generated trading strategy advice"
+  resource_mime_type: "application/json"
+  max_deadline_seconds: 120
+  discoverable: true
+  cdp_api_key_id: ${X402_CDP_API_KEY_ID}     # Required when using Coinbase facilitator
+  cdp_api_key_secret: ${X402_CDP_API_KEY_SECRET}
+
+# ============================================
+# Remote Strategy Configuration (Buyer mode)
+# ============================================
+remote_strategy:
+  enabled: false                     # Set to true to call remote /x402 services
+  endpoint: ${REMOTE_X402_ENDPOINT}  # e.g. https://partner.example.com/x402
+  network: ${REMOTE_X402_NETWORK}    # Optional network filter
+  payment_asset: ${REMOTE_X402_PAYMENT_ASSET:-USDC}
+  account: ${REMOTE_X402_ACCOUNT}    # Buyer wallet address
+  private_key: ${REMOTE_X402_PRIVATE_KEY}  # Buyer wallet private key (use secure storage)
+  price_cap: ${REMOTE_X402_PRICE_CAP}      # Optional max fee per request
+  discovery: ${REMOTE_X402_DISCOVERY}      # Optional facilitator discovery endpoint
+  fallback_mode: ${REMOTE_FALLBACK_MODE:-local}  # local|wait|error
+  timeout_seconds: ${REMOTE_TIMEOUT_SECONDS:-10}
+  retry_limit: ${REMOTE_RETRY_LIMIT:-1}
+
+# ============================================
 # Accounts: Define your DEX trading accounts
 # ============================================
 accounts:

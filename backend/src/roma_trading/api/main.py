@@ -29,6 +29,15 @@ from roma_trading.config import get_settings
 from roma_trading.agents import AgentManager
 from roma_trading.core.analytics import TradingAnalytics
 from roma_trading.core.chat_service import initialize_chat_service, get_chat_service
+from roma_trading.api.routes.x402 import router as x402_router
+
+try:  # pragma: no cover - import guard for optional x402 dependency
+    from x402.fastapi.middleware import require_payment
+    from x402.types import HTTPInputSchema
+except ImportError as exc:  # pragma: no cover - handled at runtime
+    require_payment = None  # type: ignore
+    HTTPInputSchema = None  # type: ignore
+    logger.warning("x402 package not installed: {}", exc)
 
 
 # Global agent manager
@@ -75,6 +84,83 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+def configure_x402_payment(app: FastAPI):
+    """Attach x402 middleware when enabled and properly configured."""
+
+    if require_payment is None or HTTPInputSchema is None:
+        logger.info("x402 Python SDK unavailable; skipping paid endpoint configuration")
+        return
+
+    if not settings.x402_enabled:
+        logger.info("x402 payments disabled via configuration")
+        return
+
+    if not settings.x402_pay_to_address:
+        logger.warning("x402 enabled but X402_PAY_TO_ADDRESS not set; skipping middleware")
+        return
+
+    facilitator_config = None
+
+    if settings.x402_cdp_api_key_id and settings.x402_cdp_api_key_secret:
+        try:
+            from cdp.x402 import create_facilitator_config  # type: ignore
+
+            facilitator_config = create_facilitator_config(
+                settings.x402_cdp_api_key_id,
+                settings.x402_cdp_api_key_secret,
+            )
+            if settings.x402_facilitator_url:
+                facilitator_config["url"] = settings.x402_facilitator_url
+        except ImportError as exc:
+            logger.error(
+                "CDP facilitator requested but cdp-sdk is not installed: {}. Install 'cdp-sdk' to enable authenticated facilitator calls.",
+                exc,
+            )
+        except Exception as exc:  # pragma: no cover - runtime safety
+            logger.error("Failed to initialize CDP facilitator config: {}", exc)
+
+    if facilitator_config is None and settings.x402_facilitator_url:
+        facilitator_config = {"url": settings.x402_facilitator_url}
+
+    input_schema = HTTPInputSchema(
+        body_type="json",
+        body_fields={
+            "account": {
+                "platform": "hyperliquid|aster",
+                "positions": "list of positions with symbol, size, side, entryPx, markPx",
+            },
+            "preferences": {
+                "leverage": "Optional leverage preference",
+                "riskTolerance": "Optional textual risk tolerance",
+            },
+        },
+        header_fields={"X-PAYMENT": "Base64 encoded x402 payment payload"},
+    )
+
+    price_value = settings.x402_price_usdc
+    if isinstance(price_value, (int, float)):
+        price_value = str(price_value)
+
+    app.middleware("http")(
+        require_payment(
+            price=price_value,
+            pay_to_address=settings.x402_pay_to_address,
+            path="/x402",
+            description=settings.x402_payment_description,
+            mime_type=settings.x402_resource_mime_type,
+            max_deadline_seconds=settings.x402_max_deadline_seconds,
+            input_schema=input_schema,
+            discoverable=settings.x402_discoverable,
+            facilitator_config=facilitator_config,
+            network=settings.x402_network,
+        )
+    )
+
+
+configure_x402_payment(app)
+app.include_router(x402_router)
 
 
 @app.get("/")

@@ -24,6 +24,52 @@ ROMA Trading Platform supports **two configuration styles**:
 - **`QUICK_START.md`** - Step-by-step setup guide
 - **`README_CONFIG.md`** - This file (detailed documentation)
 
+## Global System Settings
+
+```yaml
+system:
+  scan_interval_minutes: 3
+  max_concurrent_agents: 6
+  log_level: "INFO"
+
+api:
+  host: "0.0.0.0"
+  port: 8000
+
+x402:
+  enabled: false
+  price_usdc: 5.0
+  network: ${X402_NETWORK:-base-sepolia}
+  pay_to_address: ${X402_PAY_TO_ADDRESS}
+  facilitator_url: ${X402_FACILITATOR_URL}
+  payment_description: "roma-01 strategy recommendation"
+  resource_description: "AI-generated trading strategy advice"
+  resource_mime_type: "application/json"
+  max_deadline_seconds: 120
+  discoverable: true
+  cdp_api_key_id: ${X402_CDP_API_KEY_ID}
+  cdp_api_key_secret: ${X402_CDP_API_KEY_SECRET}
+
+remote_strategy:
+  enabled: false
+  endpoint: ${REMOTE_X402_ENDPOINT}
+  network: ${REMOTE_X402_NETWORK}
+  payment_asset: ${REMOTE_X402_PAYMENT_ASSET:-USDC}
+  account: ${REMOTE_X402_ACCOUNT}
+  private_key: ${REMOTE_X402_PRIVATE_KEY}
+  price_cap: ${REMOTE_X402_PRICE_CAP}
+  discovery: ${REMOTE_X402_DISCOVERY}
+  fallback_mode: ${REMOTE_FALLBACK_MODE:-local}
+  timeout_seconds: ${REMOTE_TIMEOUT_SECONDS:-10}
+  retry_limit: ${REMOTE_RETRY_LIMIT:-1}
+```
+
+- `x402.enabled`: Whether to enable the paid entry. Defaults to `false`. When enabled, you must also configure payout address, price, network, facilitator, and CDP API key.
+- `remote_strategy.enabled`: Whether to act as a buyer and call a remote `/x402`. Defaults to `false`. When enabled, provide the remote endpoint and wallet private key (inject via env vars or secrets manager).
+- `fallback_mode`: Strategy when the remote call fails: `local` = fall back to local model, `wait` = skip this cycle, `error` = raise immediately.
+- `price_cap`: Optional cap on the maximum payment per request (USDC).
+- Default settings read values from environment variables to avoid hardcoding; leave unused fields blank.
+
 ## Configuration Styles
 
 ### 1. Legacy Style (Backward Compatible)

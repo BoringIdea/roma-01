@@ -90,6 +90,40 @@ class DecisionLogger:
         
         logger.info(f"Logged decision cycle {cycle} for agent {self.agent_id}")
 
+    def log_remote_strategy(
+        self,
+        cycle: int,
+        account: Dict,
+        positions: List[Dict],
+        payload: Dict,
+    ) -> None:
+        """Log remote strategy suggestion response."""
+
+        timestamp = datetime.now()
+        filename = f"remote_strategy_{timestamp.strftime('%Y%m%d_%H%M%S')}_cycle{cycle}.json"
+
+        log_data = {
+            "timestamp": timestamp.isoformat(),
+            "cycle_number": cycle,
+            "remote": payload,
+            "account_state": account,
+            "positions": positions,
+        }
+
+        with open(self.log_dir / filename, "w") as f:
+            json.dump(log_data, f, indent=2)
+
+        self.equity_history.append({
+            "timestamp": timestamp.isoformat(),
+            "cycle": cycle,
+            "equity": account.get("total_wallet_balance", 0.0),
+            "pnl": account.get("total_unrealized_profit", 0.0),
+        })
+
+        self._save_equity_history()
+
+        logger.info(f"Logged remote strategy cycle {cycle} for agent {self.agent_id}")
+
     def record_open_position(
         self,
         symbol: str,
