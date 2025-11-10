@@ -53,7 +53,7 @@ This file controls system-wide settings that apply to all trading agents.
 | Parameter | Type | Description | Default |
 |-----------|------|-------------|---------|
 | `api.host` | String | API server host address | 0.0.0.0 |
-| `api.port` | Integer | API server port | 8000 |
+| `api.port` | Integer | API server port | 8080 |
 
 ### Agent Configuration
 

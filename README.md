@@ -128,8 +128,8 @@ npm run dev
 ### Access
 
 - **Frontend**: http://localhost:3000
-- **Backend API**: http://localhost:8000
-- **API Docs**: http://localhost:8000/docs
+- **Backend API**: http://localhost:8080
+- **API Docs**: http://localhost:8080/docs
 
 📖 **Full guide**: See [QUICKSTART.md](QUICKSTART.md)
 

@@ -69,7 +69,7 @@ class Settings(BaseSettings):
 
     # API Configuration
     api_host: str = "0.0.0.0"
-    api_port: int = 8000
+    api_port: int = 8080
     cors_origins: str = "http://localhost:3000"
 
     @property

@@ -6,7 +6,7 @@ Complete reference for ROMA-01 REST API endpoints.
 
 ## 📋 Base Information
 
-**Base URL**: `http://localhost:8000`  
+**Base URL**: `http://localhost:8080`  
 **Version**: 1.1.0  
 **Authentication**: None (add in production)
 
@@ -66,7 +66,7 @@ Get list of all trading agents.
 
 **cURL Example**:
 ```bash
-curl http://localhost:8000/api/agents
+curl http://localhost:8080/api/agents
 ```
 
 ---
@@ -138,7 +138,7 @@ Get current open positions for an agent.
     "symbol": "BTCUSDT",
     "side": "long",
     "position_amt": 0.001,
-    "entry_price": 68000.0,
+    "entry_price": 68080.0,
     "mark_price": 68500.0,
     "unrealized_profit": 0.50,
     "pnl_percentage": 0.74,
@@ -284,11 +284,11 @@ Get trade history.
     "symbol": "BTCUSDT",
     "side": "BUY",
     "position_side": "LONG",
-    "price": 68000.0,
+    "price": 68080.0,
     "quantity": 0.001,
     "realized_pnl": 2.50,
     "commission": 0.05,
-    "time": 1699012800000
+    "time": 1699012808000
   }
 ]
 ```
@@ -379,8 +379,8 @@ Get current market prices for trading pairs.
 
 When the backend is running, visit:
 
-**Swagger UI**: http://localhost:8000/docs  
-**ReDoc**: http://localhost:8000/redoc
+**Swagger UI**: http://localhost:8080/docs  
+**ReDoc**: http://localhost:8080/redoc
 
 These provide:
 - Interactive API testing

@@ -178,18 +178,18 @@ analyze_decisions("deepseek-chat-v3.1")
 **Health Check Endpoint**:
 ```bash
 # Simple health check
-curl http://localhost:8000/health
+curl http://localhost:8080/health
 # Expected: {"status":"healthy"}
 
 # With timeout
-curl --max-time 5 http://localhost:8000/health || echo "Backend is down!"
+curl --max-time 5 http://localhost:8080/health || echo "Backend is down!"
 ```
 
 **Monitoring Script** (`monitor.sh`):
 ```bash
 #!/bin/bash
 
-BACKEND_URL="http://localhost:8000"
+BACKEND_URL="http://localhost:8080"
 FRONTEND_URL="http://localhost:3000"
 
 # Check backend
@@ -232,7 +232,7 @@ ps aux | grep "python.*roma_trading" | head -1
 du -sh backend/logs/
 
 # Network connections
-netstat -an | grep :8000
+netstat -an | grep :8080
 ```
 
 ---
@@ -441,7 +441,7 @@ cd backend
 cat backend/logs/decisions/*/decision_*.json | tail -5 | jq '.decisions'
 
 # 3. Check positions
-curl http://localhost:8000/api/agents/deepseek-chat-v3.1/positions
+curl http://localhost:8080/api/agents/deepseek-chat-v3.1/positions
 
 # 4. Close positions manually if needed (via Aster DEX)
 
@@ -558,19 +558,19 @@ echo "🔍 Agent Health Check"
 echo "===================="
 
 # Get agent status
-STATUS=$(curl -s http://localhost:8000/api/agents/$AGENT_ID | jq -r '.is_running')
+STATUS=$(curl -s http://localhost:8080/api/agents/$AGENT_ID | jq -r '.is_running')
 echo "Status: $STATUS"
 
 # Get cycle count
-CYCLES=$(curl -s http://localhost:8000/api/agents/$AGENT_ID | jq -r '.cycle_count')
+CYCLES=$(curl -s http://localhost:8080/api/agents/$AGENT_ID | jq -r '.cycle_count')
 echo "Cycles: $CYCLES"
 
 # Get account
-BALANCE=$(curl -s http://localhost:8000/api/agents/$AGENT_ID/account | jq -r '.total_balance')
+BALANCE=$(curl -s http://localhost:8080/api/agents/$AGENT_ID/account | jq -r '.total_balance')
 echo "Balance: \$$BALANCE"
 
 # Get positions
-POSITIONS=$(curl -s http://localhost:8000/api/agents/$AGENT_ID/positions | jq 'length')
+POSITIONS=$(curl -s http://localhost:8080/api/agents/$AGENT_ID/positions | jq 'length')
 echo "Open Positions: $POSITIONS"
 
 # Check recent errors
@@ -586,7 +586,7 @@ fi
 
 ```bash
 # Quick performance snapshot
-curl -s http://localhost:8000/api/agents/deepseek-chat-v3.1/performance | jq '{
+curl -s http://localhost:8080/api/agents/deepseek-chat-v3.1/performance | jq '{
   win_rate,
   total_pnl,
   profit_factor,

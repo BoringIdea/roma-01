@@ -867,7 +867,7 @@ system:
 
 api:
   host: "0.0.0.0"
-  port: 8000
+  port: 8080
 
 agents:
   - id: "deepseek-chat-v3.1"
@@ -1022,7 +1022,7 @@ interface PerformanceMetrics {
 
 ### 4.1 REST API Endpoints
 
-**Base URL**: `http://localhost:8000`
+**Base URL**: `http://localhost:8080`
 
 #### System
 ```
@@ -1068,7 +1068,7 @@ GET  /api/market/prices?symbols=BTCUSDT,ETHUSDT  - Get current prices
 
 ### 4.2 WebSocket API
 
-**Endpoint**: `ws://localhost:8000/ws/agents/{id}`
+**Endpoint**: `ws://localhost:8080/ws/agents/{id}`
 
 **Message Types**:
 
@@ -1371,7 +1371,7 @@ services:
   backend:
     build: ./backend
     ports:
-      - "8000:8000"
+      - "8080:8080"
     env_file:
       - ./backend/.env
     volumes:
@@ -1384,7 +1384,7 @@ services:
     ports:
       - "3000:3000"
     environment:
-      - NEXT_PUBLIC_API_URL=http://backend:8000
+      - NEXT_PUBLIC_API_URL=http://backend:8080
     depends_on:
       - backend
     restart: unless-stopped
@@ -1410,7 +1410,7 @@ docker-compose up -d --build
 **Reverse Proxy** (Nginx):
 ```nginx
 upstream backend {
-    server localhost:8000;
+    server localhost:8080;
 }
 
 upstream frontend {
@@ -1511,13 +1511,13 @@ LOG_LEVEL=DEBUG python -m roma_trading.main
 
 **Health Check Endpoint**:
 ```bash
-curl http://localhost:8000/health
+curl http://localhost:8080/health
 # Response: {"status": "healthy"}
 ```
 
 **Agent Status**:
 ```bash
-curl http://localhost:8000/api/agents
+curl http://localhost:8080/api/agents
 # Returns: List of agents with status
 ```
 
@@ -1580,13 +1580,13 @@ pytest tests/
 **Manual Testing**:
 ```bash
 # Test API
-curl http://localhost:8000/api/agents
+curl http://localhost:8080/api/agents
 
 # Test specific agent
-curl http://localhost:8000/api/agents/deepseek-chat-v3.1/account
+curl http://localhost:8080/api/agents/deepseek-chat-v3.1/account
 
 # Test WebSocket
-wscat -c ws://localhost:8000/ws/agents/deepseek-chat-v3.1
+wscat -c ws://localhost:8080/ws/agents/deepseek-chat-v3.1
 ```
 
 ### 9.3 Code Style

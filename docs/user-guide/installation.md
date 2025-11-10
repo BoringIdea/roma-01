@@ -116,7 +116,7 @@ ASTER_PRIVATE_KEY_DEEPSEEK=your-private-key
 
 # API Configuration
 API_HOST=0.0.0.0
-API_PORT=8000
+API_PORT=8080
 CORS_ORIGINS=http://localhost:3000
 ```
 
@@ -140,7 +140,7 @@ python -m roma_trading.main
 ============================================================
 🚀 Starting ROMA-01 Trading Platform
 ============================================================
-API Server: http://0.0.0.0:8000
+API Server: http://0.0.0.0:8080
 CORS Origins: http://localhost:3000
 ============================================================
 INFO: Started server process
@@ -165,7 +165,7 @@ npm install
 yarn install
 
 # Create environment file
-echo "NEXT_PUBLIC_API_URL=http://localhost:8000" > .env.local
+echo "NEXT_PUBLIC_API_URL=http://localhost:8080" > .env.local
 
 # Start development server
 npm run dev
@@ -181,8 +181,8 @@ ready - started server on 0.0.0.0:3000, url: http://localhost:3000
 Open your browser:
 
 **Frontend Dashboard**: http://localhost:3000  
-**Backend API**: http://localhost:8000  
-**API Documentation**: http://localhost:8000/docs
+**Backend API**: http://localhost:8080  
+**API Documentation**: http://localhost:8080/docs
 
 You should see:
 - ✅ Agent cards with status
@@ -198,11 +198,11 @@ You should see:
 
 ```bash
 # Health check
-curl http://localhost:8000/health
+curl http://localhost:8080/health
 # Expected: {"status":"healthy"}
 
 # List agents
-curl http://localhost:8000/api/agents
+curl http://localhost:8080/api/agents
 # Expected: JSON array with agent info
 ```
 
@@ -215,7 +215,7 @@ curl http://localhost:8000/api/agents
 
 ### Checklist
 
-- [ ] Backend running on port 8000
+- [ ] Backend running on port 8080
 - [ ] Frontend running on port 3000
 - [ ] Can access dashboard at http://localhost:3000
 - [ ] Agent cards show "RUNNING" status
@@ -255,12 +255,12 @@ python -m roma_trading.main
 
 ### Port Already in Use
 
-**Error**: `Address already in use: 8000`
+**Error**: `Address already in use: 8080`
 
 **Solution**: Kill process or change port
 ```bash
 # Find process
-lsof -i :8000
+lsof -i :8080
 
 # Kill process
 kill -9 <PID>
@@ -276,7 +276,7 @@ API_PORT=8001
 **Solution**: Verify backend is running
 ```bash
 # Test backend
-curl http://localhost:8000/health
+curl http://localhost:8080/health
 
 # If fails, check backend terminal for errors
 ```
@@ -308,7 +308,7 @@ docker-compose down
 
 **Access**:
 - Frontend: http://localhost:3000
-- Backend: http://localhost:8000
+- Backend: http://localhost:8080
 
 ---
 

@@ -42,7 +42,7 @@ COPY config/ ./config/
 RUN mkdir -p logs
 
 # Expose port
-EXPOSE 8000
+EXPOSE 8080
 
 # Run the application
 CMD ["python", "-m", "roma_trading.main"]

@@ -21,7 +21,7 @@ WebSocket endpoints provide real-time streaming updates for:
 
 Connect to a specific agent for real-time updates.
 
-**Endpoint**: `ws://localhost:8000/ws/agents/{agent_id}`
+**Endpoint**: `ws://localhost:8080/ws/agents/{agent_id}`
 
 **Path Parameters**:
 - `agent_id`: Agent identifier (e.g., "deepseek-chat-v3.1")
@@ -67,7 +67,7 @@ Sent when positions change.
       "symbol": "BTCUSDT",
       "side": "long",
       "position_amt": 0.001,
-      "entry_price": 68000.0,
+      "entry_price": 68080.0,
       "mark_price": 68500.0,
       "unrealized_profit": 0.50,
       "pnl_percentage": 0.74,
@@ -171,7 +171,7 @@ Sent when agent status changes.
 
 ```typescript
 // Connect to WebSocket
-const ws = new WebSocket('ws://localhost:8000/ws/agents/deepseek-chat-v3.1');
+const ws = new WebSocket('ws://localhost:8080/ws/agents/deepseek-chat-v3.1');
 
 // Handle connection open
 ws.onopen = () => {
@@ -222,7 +222,7 @@ ws.onclose = (event) => {
 
 // Reconnection function
 function reconnect() {
-  const newWs = new WebSocket('ws://localhost:8000/ws/agents/deepseek-chat-v3.1');
+  const newWs = new WebSocket('ws://localhost:8080/ws/agents/deepseek-chat-v3.1');
   // ... setup handlers again
 }
 ```
@@ -235,7 +235,7 @@ import websockets
 import json
 
 async def connect_to_agent(agent_id: str):
-    uri = f"ws://localhost:8000/ws/agents/{agent_id}"
+    uri = f"ws://localhost:8080/ws/agents/{agent_id}"
     
     async with websockets.connect(uri) as websocket:
         print(f"✅ Connected to {agent_id}")
@@ -334,10 +334,10 @@ window.addEventListener('beforeunload', () => {
 ## 🐛 Troubleshooting
 
 ### Connection Refused
-**Error**: `WebSocket connection to 'ws://localhost:8000/...' failed`
+**Error**: `WebSocket connection to 'ws://localhost:8080/...' failed`
 
 **Solutions**:
-- Verify backend is running on port 8000
+- Verify backend is running on port 8080
 - Check firewall settings
 - Ensure WebSocket upgrade is supported
 
@@ -374,7 +374,7 @@ window.addEventListener('beforeunload', () => {
 **1. Use WSS (Secure WebSocket)**
 ```javascript
 // Development
-ws://localhost:8000/ws/...
+ws://localhost:8080/ws/...
 
 // Production
 wss://your-domain.com/ws/...

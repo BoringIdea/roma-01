@@ -95,7 +95,7 @@ system:
 # API Settings
 api:
   host: "0.0.0.0"                 # API server host
-  port: 8000                      # API server port
+  port: 8080                      # API server port
 
 # DEX Accounts
 accounts:

@@ -21,7 +21,7 @@ cd config
 ./start.sh
 ```
 
-Server runs on `http://localhost:8000`
+Server runs on `http://localhost:8080`
 
 ## Architecture
 
@@ -90,7 +90,7 @@ This allows flexible combinations: any account can pair with any model, and mult
 ### WebSocket
 - `WS /ws/agents/{id}` - Real-time agent updates
 
-Full API docs: http://localhost:8000/docs
+Full API docs: http://localhost:8080/docs
 
 ## Configuration
 

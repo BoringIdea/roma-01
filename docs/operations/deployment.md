@@ -115,7 +115,7 @@ cd frontend
 npm install
 
 # 2. Configure (if needed)
-# Edit .env.local if backend not on localhost:8000
+# Edit .env.local if backend not on localhost:8080
 
 # 3. Development mode
 npm run dev
@@ -128,8 +128,8 @@ npm start
 ### Access
 
 - **Frontend**: http://localhost:3000
-- **Backend API**: http://localhost:8000
-- **API Docs**: http://localhost:8000/docs
+- **Backend API**: http://localhost:8080
+- **API Docs**: http://localhost:8080/docs
 
 ---
 
@@ -163,7 +163,7 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     ports:
-      - "8000:8000"
+      - "8080:8080"
     env_file:
       - ./backend/.env
     volumes:
@@ -178,7 +178,7 @@ services:
     ports:
       - "3000:3000"
     environment:
-      - NEXT_PUBLIC_API_URL=http://backend:8000
+      - NEXT_PUBLIC_API_URL=http://backend:8080
     depends_on:
       - backend
     restart: unless-stopped
@@ -191,7 +191,7 @@ services:
 cd backend
 docker build -t roma-trading-backend .
 docker run -d \
-  -p 8000:8000 \
+  -p 8080:8080 \
   --env-file .env \
   -v $(pwd)/config:/app/config \
   -v $(pwd)/logs:/app/logs \
@@ -203,7 +203,7 @@ cd frontend
 docker build -t roma-trading-frontend .
 docker run -d \
   -p 3000:3000 \
-  -e NEXT_PUBLIC_API_URL=http://localhost:8000 \
+  -e NEXT_PUBLIC_API_URL=http://localhost:8080 \
   --name roma-frontend \
   roma-trading-frontend
 ```
@@ -221,7 +221,7 @@ docker run -d \
 # - Ubuntu 22.04 LTS
 # - t3.medium or larger
 # - 20GB EBS storage
-# - Security group: ports 22, 80, 443, 8000, 3000
+# - Security group: ports 22, 80, 443, 8080, 3000
 
 # 2. Connect to instance
 ssh ubuntu@<instance-ip>
@@ -253,7 +253,7 @@ cd ../frontend && npm install
       "image": "your-registry/roma-trading-backend:latest",
       "portMappings": [
         {
-          "containerPort": 8000,
+          "containerPort": 8080,
           "protocol": "tcp"
         }
       ],
@@ -441,10 +441,10 @@ ps aux | grep roma_trading
 tail -100 backend/logs/roma_trading_*.log
 
 # Verify agents running
-curl http://localhost:8000/agents | jq '.[] | {id, is_running}'
+curl http://localhost:8080/agents | jq '.[] | {id, is_running}'
 
 # Check P/L
-curl http://localhost:8000/agent/deepseek_aggressive/performance | jq .
+curl http://localhost:8080/agent/deepseek_aggressive/performance | jq .
 ```
 
 ### Weekly Tasks
@@ -517,7 +517,7 @@ sudo ufw enable
 
 # For development, also allow:
 sudo ufw allow 3000/tcp  # Frontend
-sudo ufw allow 8000/tcp  # Backend API
+sudo ufw allow 8080/tcp  # Backend API
 ```
 
 ### SSL/TLS Setup (Nginx)
@@ -544,7 +544,7 @@ server {
     }
 
     location /api/ {
-        proxy_pass http://localhost:8000/;
+        proxy_pass http://localhost:8080/;
     }
 }
 
@@ -577,7 +577,7 @@ sudo systemctl start roma-trading
 docker-compose up -d
 
 # 4. Verify
-curl http://localhost:8000/agents
+curl http://localhost:8080/agents
 ```
 
 ---
@@ -599,7 +599,7 @@ curl http://localhost:8000/agents
 
 ```bash
 # 1. Check backend
-curl http://localhost:8000/agents
+curl http://localhost:8080/agents
 # Should return agent list
 
 # 2. Check frontend
@@ -611,7 +611,7 @@ tail -20 backend/logs/roma_trading_*.log
 # Should show "Loaded N agents"
 
 # 4. Test API
-curl http://localhost:8000/agent/deepseek_aggressive/account
+curl http://localhost:8080/agent/deepseek_aggressive/account
 # Should return account data
 
 # 5. Check decision making

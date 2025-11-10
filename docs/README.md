@@ -219,8 +219,8 @@ cd frontend && npm run dev
 
 ### Access
 - Dashboard: http://localhost:3000
-- API: http://localhost:8000
-- Docs: http://localhost:8000/docs
+- API: http://localhost:8080
+- Docs: http://localhost:8080/docs
 
 ### Monitor
 ```bash

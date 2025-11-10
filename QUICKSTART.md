@@ -89,7 +89,7 @@ DEEPSEEK_API_KEY=sk-...    # Your DeepSeek API key
 
 # API Configuration
 API_HOST=0.0.0.0
-API_PORT=8000
+API_PORT=8080
 CORS_ORIGINS=http://localhost:3000
 ```
 
@@ -138,7 +138,7 @@ You should see:
 
 ```
 🚀 Starting ROMA Trading Platform
-API Server: http://0.0.0.0:8000
+API Server: http://0.0.0.0:8080
 Initialized TradingAgent: deepseek_aggressive
 All agents started successfully
 ```
@@ -157,7 +157,7 @@ cd /path/to/roma-01/frontend
 npm install
 
 # Create environment file
-echo "NEXT_PUBLIC_API_URL=http://localhost:8000" > .env.local
+echo "NEXT_PUBLIC_API_URL=http://localhost:8080" > .env.local
 
 # Start development server
 npm run dev
@@ -183,7 +183,7 @@ You should see:
 
 ## ✅ Verification Checklist
 
-- [ ] Backend is running on port 8000
+- [ ] Backend is running on port 8080
 - [ ] Frontend is running on port 3000
 - [ ] Can access http://localhost:3000
 - [ ] See agent cards with "Running" status
@@ -257,8 +257,8 @@ pip install -e .
 
 **Backend won't start:**
 ```bash
-# Check if port 8000 is already in use
-lsof -i :8000
+# Check if port 8080 is already in use
+lsof -i :8080
 
 # If yes, kill the process or change port in .env
 ```
@@ -266,7 +266,7 @@ lsof -i :8000
 **Frontend can't connect:**
 ```bash
 # Verify backend is running
-curl http://localhost:8000/health
+curl http://localhost:8080/health
 
 # Should return: {"status":"healthy"}
 ```

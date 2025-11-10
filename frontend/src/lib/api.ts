@@ -13,7 +13,7 @@ import type {
   Trade,
 } from "@/types";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 
 async function fetcher<T>(url: string): Promise<T> {
   const response = await fetch(`${API_BASE}${url}`);

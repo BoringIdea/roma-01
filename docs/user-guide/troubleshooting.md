@@ -353,8 +353,8 @@ tail -f logs/roma_trading_*.log
 
 Via API:
 ```bash
-curl http://localhost:8000/agents
-curl http://localhost:8000/agent/deepseek_aggressive/account
+curl http://localhost:8080/agents
+curl http://localhost:8080/agent/deepseek_aggressive/account
 ```
 
 ### Test Single Component
@@ -396,7 +396,7 @@ cd backend
 pkill -f roma_trading
 
 # Method 3: Via API
-curl -X POST http://localhost:8000/stop-all-agents
+curl -X POST http://localhost:8080/stop-all-agents
 ```
 
 ### Close All Positions Manually
@@ -414,10 +414,10 @@ Via Aster DEX UI:
 tail -100 backend/logs/roma_trading_*.log
 
 # Agent status
-curl http://localhost:8000/agents | jq .
+curl http://localhost:8080/agents | jq .
 
 # Account balance
-curl http://localhost:8000/agent/deepseek_aggressive/account | jq .
+curl http://localhost:8080/agent/deepseek_aggressive/account | jq .
 ```
 
 ---

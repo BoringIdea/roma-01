@@ -91,9 +91,9 @@ docker-compose logs -f frontend
 访问服务：
 
 - **前端界面**: http://localhost:3000
-- **后端 API**: http://localhost:8000
-- **API 文档**: http://localhost:8000/docs
-- **健康检查**: http://localhost:8000/health
+- **后端 API**: http://localhost:8080
+- **API 文档**: http://localhost:8080/docs
+- **健康检查**: http://localhost:8080/health
 
 #### 4. 验证交易智能体
 
@@ -108,7 +108,7 @@ docker-compose logs -f frontend
 - 通过 API 确认：
 
   ```bash
-  curl http://localhost:8000/api/agents
+  curl http://localhost:8080/api/agents
   ```
 
 如需调整智能体配置，修改 `backend/config/trading_config.yaml` 后重启后端服务即可生效。
@@ -170,7 +170,7 @@ docker build -t roma-01-backend .
 # 运行容器
 docker run -d \
   --name roma-backend \
-  -p 8000:8000 \
+  -p 8080:8080 \
   -v $(pwd)/config:/app/config \
   -v $(pwd)/logs:/app/logs \
   --env-file ../.env \
@@ -238,7 +238,7 @@ server {
     server_name api.yourdomain.com;
 
     location / {
-        proxy_pass http://localhost:8000;
+        proxy_pass http://localhost:8080;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -301,7 +301,7 @@ docker-compose config
 
 #### API 连接失败
 
-1. 检查端口是否被占用：`lsof -i :8000`
+1. 检查端口是否被占用：`lsof -i :8080`
 2. 检查防火墙设置
 3. 验证环境变量是否正确加载
 
@@ -422,9 +422,9 @@ docker-compose logs -f frontend
 Access services:
 
 - **Frontend UI**: http://localhost:3000
-- **Backend API**: http://localhost:8000
-- **API Docs**: http://localhost:8000/docs
-- **Health Check**: http://localhost:8000/health
+- **Backend API**: http://localhost:8080
+- **API Docs**: http://localhost:8080/docs
+- **Health Check**: http://localhost:8080/health
 
 #### 4. Verify Trading Agents
 
@@ -439,7 +439,7 @@ The backend container automatically loads and starts every trading agent defined
 - Query the API:
 
   ```bash
-  curl http://localhost:8000/api/agents
+  curl http://localhost:8080/api/agents
   ```
 
 To change agent behavior, update `backend/config/trading_config.yaml` and restart the backend service.
@@ -501,7 +501,7 @@ docker build -t roma-01-backend .
 # Run container
 docker run -d \
   --name roma-backend \
-  -p 8000:8000 \
+  -p 8080:8080 \
   -v $(pwd)/config:/app/config \
   -v $(pwd)/logs:/app/logs \
   --env-file ../.env \
@@ -569,7 +569,7 @@ server {
     server_name api.yourdomain.com;
 
     location / {
-        proxy_pass http://localhost:8000;
+        proxy_pass http://localhost:8080;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -632,7 +632,7 @@ docker-compose config
 
 #### API Connection Failed
 
-1. Check if port is already in use: `lsof -i :8000`
+1. Check if port is already in use: `lsof -i :8080`
 2. Check firewall settings
 3. Verify environment variables are loaded correctly
 

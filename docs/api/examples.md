@@ -21,10 +21,10 @@ Practical examples of using the ROMA-01 API in different programming languages.
 import requests
 import json
 
-BASE_URL = "http://localhost:8000"
+BASE_URL = "http://localhost:8080"
 
 class RomaClient:
-    def __init__(self, base_url: str = "http://localhost:8000"):
+    def __init__(self, base_url: str = "http://localhost:8080"):
         self.base_url = base_url
     
     def get(self, endpoint: str):
@@ -88,7 +88,7 @@ import websockets
 import json
 
 async def stream_agent_updates(agent_id: str):
-    uri = f"ws://localhost:8000/ws/agents/{agent_id}"
+    uri = f"ws://localhost:8080/ws/agents/{agent_id}"
     
     async with websockets.connect(uri) as websocket:
         print(f"✅ Connected to {agent_id}\n")
@@ -125,7 +125,7 @@ asyncio.run(stream_agent_updates("deepseek-chat-v3.1"))
 ### Fetch API (REST)
 
 ```typescript
-const BASE_URL = "http://localhost:8000";
+const BASE_URL = "http://localhost:8080";
 
 interface Agent {
   id: string;
@@ -180,7 +180,7 @@ class AgentMonitor {
   }
   
   private connect() {
-    this.ws = new WebSocket(`ws://localhost:8000/ws/agents/${this.agentId}`);
+    this.ws = new WebSocket(`ws://localhost:8080/ws/agents/${this.agentId}`);
     
     this.ws.onopen = () => {
       console.log('✅ Connected');
@@ -261,7 +261,7 @@ export function useAgentWebSocket(agentId: string, options: UseWebSocketOptions 
   const [lastMessage, setLastMessage] = useState<WebSocketMessage | null>(null);
   
   useEffect(() => {
-    const ws = new WebSocket(`ws://localhost:8000/ws/agents/${agentId}`);
+    const ws = new WebSocket(`ws://localhost:8080/ws/agents/${agentId}`);
     
     ws.onopen = () => {
       setIsConnected(true);
@@ -310,27 +310,27 @@ function AgentDashboard({ agentId }: { agentId: string }) {
 
 ### Get Agents
 ```bash
-curl http://localhost:8000/api/agents
+curl http://localhost:8080/api/agents
 ```
 
 ### Get Agent Account
 ```bash
-curl http://localhost:8000/api/agents/deepseek-chat-v3.1/account
+curl http://localhost:8080/api/agents/deepseek-chat-v3.1/account
 ```
 
 ### Get Positions (Pretty Print)
 ```bash
-curl http://localhost:8000/api/agents/deepseek-chat-v3.1/positions | jq '.'
+curl http://localhost:8080/api/agents/deepseek-chat-v3.1/positions | jq '.'
 ```
 
 ### Get Market Prices
 ```bash
-curl "http://localhost:8000/api/market/prices?symbols=BTCUSDT,ETHUSDT"
+curl "http://localhost:8080/api/market/prices?symbols=BTCUSDT,ETHUSDT"
 ```
 
 ### Get Recent Decisions
 ```bash
-curl "http://localhost:8000/api/agents/deepseek-chat-v3.1/decisions?limit=5" | jq '.[] | {cycle, decisions}'
+curl "http://localhost:8080/api/agents/deepseek-chat-v3.1/decisions?limit=5" | jq '.[] | {cycle, decisions}'
 ```
 
 ### WebSocket (with wscat)
@@ -339,7 +339,7 @@ curl "http://localhost:8000/api/agents/deepseek-chat-v3.1/decisions?limit=5" | j
 npm install -g wscat
 
 # Connect to WebSocket
-wscat -c ws://localhost:8000/ws/agents/deepseek-chat-v3.1
+wscat -c ws://localhost:8080/ws/agents/deepseek-chat-v3.1
 ```
 
 ---
@@ -376,7 +376,7 @@ export function CustomDashboard() {
 
 ```python
 async def trade_alerter(agent_id: str, min_value_usd: float = 100):
-    uri = f"ws://localhost:8000/ws/agents/{agent_id}"
+    uri = f"ws://localhost:8080/ws/agents/{agent_id}"
     
     async with websockets.connect(uri) as ws:
         async for message in ws:
@@ -477,7 +477,7 @@ async def compare_agents():
 ### Using Fetch API
 
 ```javascript
-const BASE_URL = "http://localhost:8000";
+const BASE_URL = "http://localhost:8080";
 
 // Get agents with error handling
 async function getAgents() {
@@ -544,7 +544,7 @@ export function AgentCard({ agentId }: { agentId: string }) {
 class RomaWebSocket {
   constructor(agentId) {
     this.agentId = agentId;
-    this.url = `ws://localhost:8000/ws/agents/${agentId}`;
+    this.url = `ws://localhost:8080/ws/agents/${agentId}`;
     this.reconnectDelay = 5000;
     this.maxReconnectAttempts = 10;
     this.reconnectCount = 0;
@@ -622,49 +622,49 @@ monitor
 
 ```bash
 # Get API info
-curl http://localhost:8000/
+curl http://localhost:8080/
 
 # Health check
-curl http://localhost:8000/health
+curl http://localhost:8080/health
 
 # List agents
-curl http://localhost:8000/api/agents | jq '.'
+curl http://localhost:8080/api/agents | jq '.'
 
 # Get specific agent
-curl http://localhost:8000/api/agents/deepseek-chat-v3.1 | jq '.'
+curl http://localhost:8080/api/agents/deepseek-chat-v3.1 | jq '.'
 ```
 
 ### Account & Positions
 
 ```bash
 # Get account balance
-curl http://localhost:8000/api/agents/deepseek-chat-v3.1/account | jq '.total_balance'
+curl http://localhost:8080/api/agents/deepseek-chat-v3.1/account | jq '.total_balance'
 
 # Get positions
-curl http://localhost:8000/api/agents/deepseek-chat-v3.1/positions | jq '.[] | {symbol, side, pnl: .unrealized_profit}'
+curl http://localhost:8080/api/agents/deepseek-chat-v3.1/positions | jq '.[] | {symbol, side, pnl: .unrealized_profit}'
 
 # Get performance
-curl http://localhost:8000/api/agents/deepseek-chat-v3.1/performance | jq '{win_rate, total_pnl, sharpe_ratio}'
+curl http://localhost:8080/api/agents/deepseek-chat-v3.1/performance | jq '{win_rate, total_pnl, sharpe_ratio}'
 ```
 
 ### Decisions & Trades
 
 ```bash
 # Get recent decisions (last 5)
-curl "http://localhost:8000/api/agents/deepseek-chat-v3.1/decisions?limit=5" | jq '.[] | {cycle, action: .decisions[0].action}'
+curl "http://localhost:8080/api/agents/deepseek-chat-v3.1/decisions?limit=5" | jq '.[] | {cycle, action: .decisions[0].action}'
 
 # Get trade history
-curl "http://localhost:8000/api/agents/deepseek-chat-v3.1/trades?limit=10" | jq '.[] | {symbol, side, pnl: .realized_pnl}'
+curl "http://localhost:8080/api/agents/deepseek-chat-v3.1/trades?limit=10" | jq '.[] | {symbol, side, pnl: .realized_pnl}'
 ```
 
 ### Market Data
 
 ```bash
 # Get all default prices
-curl http://localhost:8000/api/market/prices | jq '.[] | {symbol, price}'
+curl http://localhost:8080/api/market/prices | jq '.[] | {symbol, price}'
 
 # Get specific symbols
-curl "http://localhost:8000/api/market/prices?symbols=BTCUSDT,ETHUSDT" | jq '.'
+curl "http://localhost:8080/api/market/prices?symbols=BTCUSDT,ETHUSDT" | jq '.'
 ```
 
 ### Monitoring Script
@@ -674,7 +674,7 @@ curl "http://localhost:8000/api/market/prices?symbols=BTCUSDT,ETHUSDT" | jq '.'
 # monitor-agent.sh - Quick agent monitoring
 
 AGENT_ID="deepseek-chat-v3.1"
-BASE_URL="http://localhost:8000"
+BASE_URL="http://localhost:8080"
 
 echo "📊 ROMA-01 Agent Monitor"
 echo "Agent: $AGENT_ID"
@@ -718,7 +718,7 @@ setInterval(async () => {
 - Building real-time dashboard
 
 ```javascript
-const ws = new WebSocket('ws://localhost:8000/ws/agents/deepseek-chat-v3.1');
+const ws = new WebSocket('ws://localhost:8080/ws/agents/deepseek-chat-v3.1');
 ws.onmessage = (event) => {
   updateUI(JSON.parse(event.data));
 };

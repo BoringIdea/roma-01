@@ -128,8 +128,8 @@ npm run dev
 ### 访问
 
 - **前端**：http://localhost:3000
-- **后端 API**：http://localhost:8000
-- **API 文档**：http://localhost:8000/docs
+- **后端 API**：http://localhost:8080
+- **API 文档**：http://localhost:8080/docs
 
 📖 **完整指南**：查看 [QUICKSTART.md](QUICKSTART.md)
 
