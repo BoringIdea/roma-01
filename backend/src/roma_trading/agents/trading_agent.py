@@ -104,6 +104,10 @@ class TradingAgent:
         
         # Initialize performance analyzer
         self.performance = PerformanceAnalyzer()
+        self.default_prompt_language = self._normalize_language(
+            self.config["strategy"].get("prompt_language")
+        )
+        self.config["strategy"]["prompt_language"] = self.default_prompt_language
         self.last_account_snapshot: Dict = {}
 
         # Advanced order configuration
@@ -270,8 +274,15 @@ class TradingAgent:
             performance_metrics = self.performance.calculate_metrics(trades)
             
             # 5. Build prompts
-            system_prompt = self._build_system_prompt()
-            market_context = self._build_market_context(account, positions, market_data, performance_metrics)
+            prompt_language = self._resolve_prompt_language()
+            system_prompt = self._build_system_prompt(language=prompt_language)
+            market_context = self._build_market_context(
+                account,
+                positions,
+                market_data,
+                performance_metrics,
+                language=prompt_language,
+            )
             
             # 6. AI Decision
             logger.info("Calling AI for decision...")
@@ -333,12 +344,128 @@ class TradingAgent:
         
         return market_data
 
-    def _build_system_prompt(self) -> str:
+    def _normalize_language(self, language: Optional[str]) -> str:
+        """Normalize user-provided language codes to supported values."""
+        if not language:
+            return "en"
+        lang = language.lower()
+        if lang.startswith("zh"):
+            return "zh"
+        return "en"
+
+    def _resolve_prompt_language(self, language: Optional[str] = None) -> str:
+        """Resolve prompt language using override or default configuration."""
+        if language:
+            return self._normalize_language(language)
+        return self.default_prompt_language or "en"
+
+    def _build_system_prompt(self, language: Optional[str] = None) -> str:
         """Build system prompt with trading rules and optional custom prompts."""
+        lang = self._resolve_prompt_language(language)
         risk = self.config["strategy"]["risk_management"]
         
         # Base system prompt (core rules only)
-        base_prompt = f"""You are a professional cryptocurrency futures trading AI.
+        if lang == "zh":
+            base_prompt = f"""你是一名专业的加密货币永续合约交易AI。
+
+**核心规则：**
+1. 最大持仓数量：{risk['max_positions']}
+2. 最大杠杆倍数：{risk['max_leverage']}x
+3. 单笔持仓规模上限：账户资金的 {risk['max_position_size_pct']}%
+4. 总持仓规模上限：账户总余额的 {risk.get('max_total_position_pct', 80)}%
+5. 无持仓时单笔下单上限：可用资金的 {risk.get('max_single_trade_pct', 50)}%
+6. 有持仓时单笔加仓上限：可用资金的 {risk.get('max_single_trade_with_positions_pct', 30)}%
+7. 止损阈值：{risk['stop_loss_pct']}%
+8. 止盈阈值：{risk['take_profit_pct']}%
+9. 风险回报比：必须 ≥ 1:3
+
+**关键步骤——先判断市场结构：**
+在做出任何交易决策之前，必须先识别市场所处的状态：
+
+1. **上升趋势**：价格不断创新高且高点抬高，价格位于 EMA(20) 之上，RSI 向上
+   - 方向偏向：优先考虑做多，但仍需确认
+   - 入场方式：回踩支撑或放量突破阻力
+   
+2. **下降趋势**：价格不断创新低且高点降低，价格位于 EMA(20) 之下，RSI 向下
+   - 方向偏向：优先考虑做空（在下跌趋势中这是默认策略）
+   - 入场方式：反弹到阻力位或放量跌破支撑
+   - 不要忽视做空机会
+   
+3. **震荡/盘整**：价格在支撑与阻力之间来回波动，信号混杂
+   - 方向偏向：缩小仓位或保持观望
+   - 入场方式：仅在放量突破时考虑
+
+**多空平衡提醒：**
+- 禁止只做多！必须保持做多与做空的客观性
+- 在明显下跌趋势中，应主动寻找做空机会
+- 只有在出现强烈反转信号时（RSI 超卖 + 看涨背离 + 成交量放大）才考虑逆势做多
+- 记住：下跌同样可以盈利，做空与做多同样重要
+
+**入场信号要求（多维确认）：**
+在开仓前需要多维度的信号匹配，但同时保持灵活：
+
+1. **趋势方向（核心维度）**： 
+   - 做多：价格位于 EMA(20) 上方并创新高
+   - 做空：价格位于 EMA(20) 下方并创新低
+   - 这是最重要的信号
+
+2. **动量（次要维度）**：
+   - 做多：RSI(14) > 50（温和多头动量），RSI > 55（强劲）
+   - 做空：RSI(14) < 50（温和空头动量），RSI < 45（强劲）
+   - RSI 极值（超买/超卖）也可提示反转
+
+3. **MACD 辅助确认**：
+   - 尽量让 MACD 柱状图方向与交易方向一致
+   - 做多：MACD 线在信号线之上更佳，但不是硬性要求
+   - 做空：MACD 线在信号线之下更佳，但不是硬性要求
+   - MACD 背离可提示反转
+
+4. **成交量（辅助维度）**：
+   - 突破/跌破时的放量最理想
+   - 但不能仅因量能较低就放弃交易
+
+**最低入场标准：**
+- 四个信号中至少满足两个（趋势 + 任意一个辅助信号）
+- 强趋势配合 RSI 确认即可入场
+- MACD 与成交量属于加分项，但不是必需条件
+
+**拒绝交易的情形：**
+- 核心信号严重冲突（如强势上升但 RSI < 30 且 MACD 明显看空）
+- 市场明显震荡且没有放量突破
+- 只有单一信号、缺少确认且信心不足
+
+**持仓管理原则：**
+- 每笔交易初始风险控制在权益的 0.5%-1.0%
+- 先设定止损，再计算仓位规模
+- 当盈利达到 1R 后可将止损移动至保本
+- 2R 时可部分止盈，剩余仓位目标 3R
+- 严禁对亏损仓位补仓
+- 只允许对盈利仓位加仓
+
+**最小下单要求：**
+- 所有合约最小下单数量为 0.001
+- 10 倍杠杆下的参考保证金需求：
+  * BTCUSDT @ $110k：约 $11
+  * ETHUSDT @ $3.9k：约 $0.4
+  * BNBUSDT @ $1.1k：约 $0.11
+  * SOLUSDT @ $190：约 $0.02
+
+**品种选择提醒：**
+- 可用资金低于 $15 时不要交易 BTCUSDT（成本过高）
+- 可用资金低于 $5 时聚焦 SOLUSDT、BNBUSDT、DOGEUSDT、XRPUSDT（更容易满足最小仓位）
+- 选择你确实能够满足最小下单要求的合约
+- 若无法满足保证金要求，请放弃该机会
+
+**交易频率：**
+- 在积极寻找机会与保持纪律之间取得平衡
+- 每小时最多 3 笔交易（由 2 提高）
+- 每日最多 12 笔交易（由 8 提高）
+- 若出现连续 4 笔亏损（由 3 提高），暂停并重新评估
+- 空仓是允许的，但要主动寻找机会
+- 不要过度保守，只要看到合适机会就执行
+"""
+        else:
+            base_prompt = f"""You are a professional cryptocurrency futures trading AI.
 
 **CORE RULES:**
 1. Max positions: {risk['max_positions']}
@@ -443,42 +570,121 @@ You should have alignment across multiple dimensions before opening a position, 
         
         if custom_prompts.get("enabled", False):
             custom_sections = []
+            heading_map = {
+                "trading_philosophy": {
+                    "en": "**YOUR TRADING PHILOSOPHY:**",
+                    "zh": "**你的交易理念：**",
+                },
+                "entry_preferences": {
+                    "en": "**YOUR ENTRY PREFERENCES:**",
+                    "zh": "**你的入场偏好：**",
+                },
+                "position_management": {
+                    "en": "**YOUR POSITION MANAGEMENT:**",
+                    "zh": "**你的持仓管理：**",
+                },
+                "market_preferences": {
+                    "en": "**YOUR MARKET PREFERENCES:**",
+                    "zh": "**你的市场偏好：**",
+                },
+                "additional_rules": {
+                    "en": "**YOUR ADDITIONAL RULES:**",
+                    "zh": "**你的附加规则：**",
+                },
+            }
             
             if custom_prompts.get("trading_philosophy"):
-                custom_sections.append(f"""
-**YOUR TRADING PHILOSOPHY:**
-{custom_prompts['trading_philosophy']}
-""")
+                custom_sections.append(
+                    f"\n{heading_map['trading_philosophy'][lang]}\n{custom_prompts['trading_philosophy']}\n"
+                )
             
             if custom_prompts.get("entry_preferences"):
-                custom_sections.append(f"""
-**YOUR ENTRY PREFERENCES:**
-{custom_prompts['entry_preferences']}
-""")
+                custom_sections.append(
+                    f"\n{heading_map['entry_preferences'][lang]}\n{custom_prompts['entry_preferences']}\n"
+                )
             
             if custom_prompts.get("position_management"):
-                custom_sections.append(f"""
-**YOUR POSITION MANAGEMENT:**
-{custom_prompts['position_management']}
-""")
+                custom_sections.append(
+                    f"\n{heading_map['position_management'][lang]}\n{custom_prompts['position_management']}\n"
+                )
             
             if custom_prompts.get("market_preferences"):
-                custom_sections.append(f"""
-**YOUR MARKET PREFERENCES:**
-{custom_prompts['market_preferences']}
-""")
+                custom_sections.append(
+                    f"\n{heading_map['market_preferences'][lang]}\n{custom_prompts['market_preferences']}\n"
+                )
             
             if custom_prompts.get("additional_rules"):
-                custom_sections.append(f"""
-**YOUR ADDITIONAL RULES:**
-{custom_prompts['additional_rules']}
-""")
+                custom_sections.append(
+                    f"\n{heading_map['additional_rules'][lang]}\n{custom_prompts['additional_rules']}\n"
+                )
             
             if custom_sections:
                 base_prompt += "\n" + "\n".join(custom_sections)
         
         # Output format
-        base_prompt += """
+        if lang == "zh":
+            base_prompt += """
+**输出格式：**
+首先提供你的链式推理分析，必须包含：
+1. 市场结构判断（上升/下降/震荡）
+2. 多维信号核查（趋势、动量、MACD、成交量）
+3. 风险评估
+4. 决策理由
+
+然后输出一个 JSON 数组列出所有决策：
+
+示例（做多）：
+{{"action": "open_long", "symbol": "BTCUSDT", "leverage": 5, "position_size_usd": 1000, "stop_loss": 94000, "take_profit": 98000, "confidence": 0.75, "reasoning": "上涨趋势确认，RSI 58，MACD 看多，突破伴随放量"}}
+
+示例（做空——下跌趋势中务必使用）：
+{{"action": "open_short", "symbol": "ETHUSDT", "leverage": 5, "position_size_usd": 800, "stop_loss": 4100, "take_profit": 3700, "confidence": 0.80, "reasoning": "下降趋势确认，RSI 42，MACD 看空，跌破支撑伴随放量"}}
+
+示例（平仓）：
+{{"action": "close_long", "symbol": "SOLUSDT", "confidence": 0.85, "reasoning": "达到止盈目标"}}
+
+示例（部分平仓）：
+{{"action": "close_short", "symbol": "ETHUSDT", "close_quantity_pct": 0.4, "confidence": 0.70, "reasoning": "阶段目标达成，降低风险敞口"}}
+
+**必填字段：**
+- action：open_long、open_short、close_long、close_short、hold、wait
+- symbol：交易品种（例如 "BTCUSDT"）
+- confidence：决策信心（0.0 到 1.0，1.0 = 100%）
+- reasoning：简要说明，需包含市场结构与信号确认
+- 开仓时需额外包含：leverage、position_size_usd、stop_loss、take_profit
+- 平仓时可选包含：close_quantity（绝对数量）或 close_quantity_pct（0-1 或 0-100），两者都省略则默认全仓平仓
+
+**做空特别提醒：**
+- 在下跌趋势中必须主动考虑 open_short
+- 做空止损价必须高于入场价
+- 做空止盈价必须低于入场价
+- 示例：入场 4000，stop_loss 4100，take_profit 3700
+
+**信心等级指南：**
+- 0.9-1.0：高度确定，信号全部对齐
+- 0.7-0.9：信心较高，2-3 个信号一致且风险可控
+- 0.5-0.7：信心中等，趋势明确且至少一个辅助信号支持
+- 0.3-0.5：信心较低，仅在趋势非常清晰且风控到位时执行
+- <0.3：不确定性高，倾向使用 "wait"
+
+**提示：** 趋势明确且风险回报合理时，0.5-0.7 的信心即可执行交易。
+
+**决策优先顺序：**
+1. 判断市场结构
+2. 确认趋势是否清晰（最关键）
+3. 寻找至少一个辅助信号（RSI、MACD 或成交量）
+4. 评估风险回报比（目标 ≥ 1:3，可接受 1:2）
+5. 检查持仓限制与可用资金
+6. 最终决定（开仓/平仓/观望）
+
+**交易心态：**
+- 保持主动，看到符合条件的机会就执行
+- 不必等待所有信号完美重叠
+- 趋势 + RSI 确认通常足以入场
+- 宁愿执行经过评估的机会，也不要错失
+- 趋势清晰时，0.5-0.7 的信心即可出手
+"""
+        else:
+            base_prompt += """
 **OUTPUT FORMAT:**
 First, provide your chain of thought analysis. MUST include:
 1. Market regime classification (uptrend/downtrend/ranging)
@@ -542,41 +748,70 @@ Partial close example:
         return base_prompt
 
     def _build_market_context(
-        self, account: Dict, positions: List[Dict], market_data: Dict, performance: Dict
+        self,
+        account: Dict,
+        positions: List[Dict],
+        market_data: Dict,
+        performance: Dict,
+        language: Optional[str] = None,
     ) -> str:
         """Build market context for AI."""
+        lang = self._resolve_prompt_language(language)
         lines = []
         
-        # Calculate agent's usable balance (for multi-agent scenarios)
         available_balance = account['available_balance']
         max_usage_pct = self.config["strategy"].get("max_account_usage_pct", 100)
         agent_max_balance = available_balance * (max_usage_pct / 100)
+        total_balance = account['total_wallet_balance']
+        unrealized = account['total_unrealized_profit']
         
-        # Account info - emphasize available balance
-        lines.append(f"**Account:**")
-        lines.append(f"💰 Available for Trading: ${agent_max_balance:.2f} ← USE THIS FOR DECISIONS")
-        if max_usage_pct < 100:
-            lines.append(f"(Limited to {max_usage_pct}% of ${available_balance:.2f} for multi-agent)")
-        lines.append(f"Total Balance: ${account['total_wallet_balance']:.2f}")
-        lines.append(f"Unrealized P/L: ${account['total_unrealized_profit']:+.2f}\n")
+        if lang == "zh":
+            lines.append("**账户信息：**")
+            lines.append(f"💰 可用于交易的资金：${agent_max_balance:.2f} ← 决策请使用该数值")
+            if max_usage_pct < 100:
+                lines.append(f"（多智能体模式下仅可使用可用资金的 {max_usage_pct}% ，当前可用金额约 ${available_balance:.2f}）")
+            lines.append(f"总资产：${total_balance:.2f}")
+            lines.append(f"未实现盈亏：${unrealized:+.2f}\n")
+        else:
+            lines.append("**Account:**")
+            lines.append(f"💰 Available for Trading: ${agent_max_balance:.2f} ← USE THIS FOR DECISIONS")
+            if max_usage_pct < 100:
+                lines.append(f"(Limited to {max_usage_pct}% of ${available_balance:.2f} for multi-agent)")
+            lines.append(f"Total Balance: ${total_balance:.2f}")
+            lines.append(f"Unrealized P/L: ${unrealized:+.2f}\n")
         
-        # Performance
         if performance["total_trades"] > 0:
-            lines.append(self.performance.format_performance(performance))
+            lines.append(self.performance.format_performance(performance, language=lang))
             lines.append("")
         
-        # Current positions
         if positions:
-            lines.append("**Current Positions:**")
+            if lang == "zh":
+                lines.append("**当前持仓：**")
+            else:
+                lines.append("**Current Positions:**")
             for pos in positions:
-                pnl_pct = ((pos["mark_price"] - pos["entry_price"]) / pos["entry_price"] * 100) if pos["side"] == "long" else ((pos["entry_price"] - pos["mark_price"]) / pos["entry_price"] * 100)
-                lines.append(f"- {pos['symbol']} {pos['side'].upper()}: Entry ${pos['entry_price']:.2f}, Current ${pos['mark_price']:.2f}, P/L {pnl_pct:+.2f}%")
+                pnl_pct = (
+                    (pos["mark_price"] - pos["entry_price"]) / pos["entry_price"] * 100
+                    if pos["side"] == "long"
+                    else (pos["entry_price"] - pos["mark_price"]) / pos["entry_price"] * 100
+                )
+                if lang == "zh":
+                    side_label = "多" if pos["side"] == "long" else "空"
+                    lines.append(
+                        f"- {pos['symbol']} {side_label}单：入场 ${pos['entry_price']:.2f} | 当前 ${pos['mark_price']:.2f} | 浮动盈亏 {pnl_pct:+.2f}%"
+                    )
+                else:
+                    lines.append(
+                        f"- {pos['symbol']} {pos['side'].upper()}: Entry ${pos['entry_price']:.2f}, Current ${pos['mark_price']:.2f}, P/L {pnl_pct:+.2f}%"
+                    )
             lines.append("")
         
-        # Market data
-        lines.append("**Market Data:**")
+        if lang == "zh":
+            lines.append("**市场数据：**")
+        else:
+            lines.append("**Market Data:**")
         for symbol, data in market_data.items():
-            lines.append(self.ta.format_market_data(symbol, data["3m"], data["4h"]))
+            lines.append(self.ta.format_market_data(symbol, data["3m"], data["4h"], language=lang))
             lines.append("")
         
         return "\n".join(lines)

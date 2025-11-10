@@ -104,8 +104,12 @@ export const api = {
   },
   
   // Get full prompt preview (core rules + custom prompts)
-  getFullPromptPreview: async (agentId: string): Promise<string> => {
-    const response = await fetch(`${API_BASE}/api/agents/${agentId}/prompts/preview`);
+  getFullPromptPreview: async (agentId: string, language?: string): Promise<string> => {
+    const url = new URL(`${API_BASE}/api/agents/${agentId}/prompts/preview`);
+    if (language) {
+      url.searchParams.set("language", language);
+    }
+    const response = await fetch(url.toString());
     const data = await response.json();
     if (data.status === "success") {
       return data.data.full_prompt;

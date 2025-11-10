@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useLanguage } from "@/store/useLanguage";
 import { getTranslation } from "@/lib/i18n";
+import { api } from "@/lib/api";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 
@@ -132,14 +133,8 @@ export default function PromptEditor({ agentId }: { agentId: string }) {
     setLoadingPreview(true);
     setError(null);
     try {
-      const response = await fetch(`${API_BASE}/api/agents/${agentId}/prompts/preview`);
-      const data = await response.json();
-      if (data.status === "success") {
-        setFullPrompt(data.data.full_prompt);
-      } else {
-        setFullPrompt("Failed to load preview");
-        setError("Failed to load preview");
-      }
+      const preview = await api.getFullPromptPreview(agentId, language);
+      setFullPrompt(preview);
     } catch (err) {
       console.error("Failed to load prompt preview:", err);
       setFullPrompt("Failed to load preview");
@@ -155,6 +150,13 @@ export default function PromptEditor({ agentId }: { agentId: string }) {
     }
     setShowPreview(!showPreview);
   };
+
+  useEffect(() => {
+    if (showPreview) {
+      loadFullPromptPreview();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [language]);
 
   if (loading) {
     return (

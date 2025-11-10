@@ -13,6 +13,7 @@ system:
   scan_interval_minutes: 3
   max_concurrent_agents: 6
   log_level: "INFO"
+  prompt_language: "en" # zh（中文） or en(English)
 
 api:
   host: "0.0.0.0"

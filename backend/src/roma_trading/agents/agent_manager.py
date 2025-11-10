@@ -172,6 +172,7 @@ class AgentManager:
                 "initial_balance": 10000.0,
                 "scan_interval_minutes": main_config.get("system", {}).get("scan_interval_minutes", 3),
                 "max_account_usage_pct": 100,
+                "prompt_language": main_config.get("system", {}).get("prompt_language", "en"),
                 "default_coins": ["BTCUSDT", "ETHUSDT", "SOLUSDT", "BNBUSDT", "DOGEUSDT", "XRPUSDT"],
                 "risk_management": {
                     "max_positions": 3,

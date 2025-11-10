@@ -1,5 +1,7 @@
 # ROMA Trading Platform - Configuration Guide
 
+**Language / 语言选择:** [English](README_CONFIG.md) · [中文](README_CONFIG.zh-CN.md)
+
 ## Quick Start
 
 **New users**: Start by editing the default configuration:
@@ -274,6 +276,7 @@ agents:
 | `initial_balance` | Float | Starting balance for performance tracking (USDT). Used for calculations and display, not actual account balance. | `10000.0` | Match your actual balance |
 | `scan_interval_minutes` | Integer | How often the agent scans the market and makes trading decisions (in minutes). | `3` | 3-5 minutes |
 | `max_account_usage_pct` | Integer | Maximum percentage of account balance to use for trading. Useful when multiple agents share one account. | `100` | 100% for single agent, 60-80% per agent if sharing |
+| `prompt_language` | String | System prompt language (`en` or `zh`). Determines AI decision language. | Inherits `system.prompt_language` | Match your operating language |
 
 #### Trading Pairs
 

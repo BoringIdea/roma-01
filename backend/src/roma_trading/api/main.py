@@ -17,7 +17,7 @@ Endpoints:
 
 import asyncio
 from typing import Optional
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from contextlib import asynccontextmanager
@@ -389,7 +389,7 @@ async def get_custom_prompts(agent_id: str):
 
 
 @app.get("/api/agents/{agent_id}/prompts/preview")
-async def get_full_prompt_preview(agent_id: str):
+async def get_full_prompt_preview(agent_id: str, language: Optional[str] = Query(None)):
     """
     Get the complete system prompt that will be sent to AI
     
@@ -403,7 +403,7 @@ async def get_full_prompt_preview(agent_id: str):
         agent = agent_manager.get_agent(agent_id)
         
         # Build the actual system prompt using agent's method
-        full_prompt = agent._build_system_prompt()
+        full_prompt = agent._build_system_prompt(language=language)
         
         return {
             "status": "success",

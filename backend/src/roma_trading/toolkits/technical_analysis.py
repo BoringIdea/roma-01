@@ -176,7 +176,13 @@ class TechnicalAnalysisToolkit:
         }
 
     @classmethod
-    def format_market_data(cls, symbol: str, data_3m: Dict, data_4h: Optional[Dict] = None) -> str:
+    def format_market_data(
+        cls,
+        symbol: str,
+        data_3m: Dict,
+        data_4h: Optional[Dict] = None,
+        language: str = "en",
+    ) -> str:
         """
         Format market data for AI prompt.
         
@@ -189,23 +195,43 @@ class TechnicalAnalysisToolkit:
             Formatted string for AI consumption
         """
         lines = [f"**{symbol}**"]
-        lines.append(f"Price: ${data_3m['current_price']:.4f}")
         
-        if data_3m['price_change_1h'] != 0:
-            lines.append(f"1h: {data_3m['price_change_1h']:+.2f}%")
-        
-        lines.append(f"RSI(7): {data_3m['rsi']:.1f}")
-        lines.append(f"MACD: {data_3m['macd']['macd']:.4f}")
-        lines.append(f"EMA20: ${data_3m['ema20']:.4f}")
-        
-        if data_3m['volume_ratio'] > 1.5:
-            lines.append(f"Volume: {data_3m['volume_ratio']:.1f}x avg ⬆")
-        
-        if data_4h:
-            lines.append(f"\n4h Trend: {data_4h['price_change_4h']:+.2f}%")
-            lines.append(f"RSI(14): {data_4h['rsi']:.1f}")
-            if data_4h.get('ema50'):
-                lines.append(f"EMA50: ${data_4h['ema50']:.4f}")
+        if language == "zh":
+            lines.append(f"价格：${data_3m['current_price']:.4f}")
+            
+            if data_3m['price_change_1h'] != 0:
+                lines.append(f"1 小时涨跌：{data_3m['price_change_1h']:+.2f}%")
+            
+            lines.append(f"RSI(7)：{data_3m['rsi']:.1f}")
+            lines.append(f"MACD：{data_3m['macd']['macd']:.4f}")
+            lines.append(f"EMA20：${data_3m['ema20']:.4f}")
+            
+            if data_3m['volume_ratio'] > 1.5:
+                lines.append(f"成交量：{data_3m['volume_ratio']:.1f} 倍均量 ⬆")
+            
+            if data_4h:
+                lines.append(f"\n4 小时趋势：{data_4h['price_change_4h']:+.2f}%")
+                lines.append(f"RSI(14)：{data_4h['rsi']:.1f}")
+                if data_4h.get('ema50'):
+                    lines.append(f"EMA50：${data_4h['ema50']:.4f}")
+        else:
+            lines.append(f"Price: ${data_3m['current_price']:.4f}")
+            
+            if data_3m['price_change_1h'] != 0:
+                lines.append(f"1h: {data_3m['price_change_1h']:+.2f}%")
+            
+            lines.append(f"RSI(7): {data_3m['rsi']:.1f}")
+            lines.append(f"MACD: {data_3m['macd']['macd']:.4f}")
+            lines.append(f"EMA20: ${data_3m['ema20']:.4f}")
+            
+            if data_3m['volume_ratio'] > 1.5:
+                lines.append(f"Volume: {data_3m['volume_ratio']:.1f}x avg ⬆")
+            
+            if data_4h:
+                lines.append(f"\n4h Trend: {data_4h['price_change_4h']:+.2f}%")
+                lines.append(f"RSI(14): {data_4h['rsi']:.1f}")
+                if data_4h.get('ema50'):
+                    lines.append(f"EMA50: ${data_4h['ema50']:.4f}")
         
         return "\n".join(lines)
 

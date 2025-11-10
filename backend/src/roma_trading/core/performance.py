@@ -159,26 +159,43 @@ class PerformanceAnalyzer:
         }
 
     @staticmethod
-    def format_performance(metrics: Dict) -> str:
+    def format_performance(metrics: Dict, language: str = "en") -> str:
         """Format performance metrics for AI prompt."""
         if metrics["total_trades"] == 0:
-            return "No trades yet."
+            return "No trades yet." if language != "zh" else "暂无交易记录。"
         
-        lines = [
-            f"**Performance Summary ({metrics['total_trades']} trades)**",
-            f"Win Rate: {metrics['win_rate']:.1f}% ({metrics['wins']}W / {metrics['losses']}L)",
-            f"Avg Profit: ${metrics['avg_profit']:.2f} | Avg Loss: ${metrics['avg_loss']:.2f}",
-            f"Profit Factor: {metrics['profit_factor']:.2f}",
-            f"Sharpe Ratio: {metrics['sharpe_ratio']:.2f}",
-            f"Max Drawdown: {metrics['max_drawdown']:.2f}%",
-            f"Total P/L: ${metrics['total_pnl']:+.2f}",
-        ]
-        
-        if metrics["best_trade"]:
-            lines.append(f"Best: {metrics['best_trade']['symbol']} ${metrics['best_trade']['pnl']:+.2f}")
-        
-        if metrics["worst_trade"]:
-            lines.append(f"Worst: {metrics['worst_trade']['symbol']} ${metrics['worst_trade']['pnl']:+.2f}")
+        if language == "zh":
+            lines = [
+                f"**绩效概览（{metrics['total_trades']} 笔交易）**",
+                f"胜率：{metrics['win_rate']:.1f}%（{metrics['wins']} 胜 / {metrics['losses']} 负）",
+                f"平均盈利：${metrics['avg_profit']:.2f} | 平均亏损：${metrics['avg_loss']:.2f}",
+                f"收益因子：{metrics['profit_factor']:.2f}",
+                f"夏普比率：{metrics['sharpe_ratio']:.2f}",
+                f"最大回撤：{metrics['max_drawdown']:.2f}%",
+                f"总盈亏：${metrics['total_pnl']:+.2f}",
+            ]
+            
+            if metrics["best_trade"]:
+                lines.append(f"最佳交易：{metrics['best_trade']['symbol']} ${metrics['best_trade']['pnl']:+.2f}")
+            
+            if metrics["worst_trade"]:
+                lines.append(f"最差交易：{metrics['worst_trade']['symbol']} ${metrics['worst_trade']['pnl']:+.2f}")
+        else:
+            lines = [
+                f"**Performance Summary ({metrics['total_trades']} trades)**",
+                f"Win Rate: {metrics['win_rate']:.1f}% ({metrics['wins']}W / {metrics['losses']}L)",
+                f"Avg Profit: ${metrics['avg_profit']:.2f} | Avg Loss: ${metrics['avg_loss']:.2f}",
+                f"Profit Factor: {metrics['profit_factor']:.2f}",
+                f"Sharpe Ratio: {metrics['sharpe_ratio']:.2f}",
+                f"Max Drawdown: {metrics['max_drawdown']:.2f}%",
+                f"Total P/L: ${metrics['total_pnl']:+.2f}",
+            ]
+            
+            if metrics["best_trade"]:
+                lines.append(f"Best: {metrics['best_trade']['symbol']} ${metrics['best_trade']['pnl']:+.2f}")
+            
+            if metrics["worst_trade"]:
+                lines.append(f"Worst: {metrics['worst_trade']['symbol']} ${metrics['worst_trade']['pnl']:+.2f}")
         
         return "\n".join(lines)
 
