@@ -5,6 +5,7 @@ Provides a simple interface for users to chat with AI about trading strategies,
 prompts, and platform features.
 """
 
+import asyncio
 import dspy
 from typing import Optional
 from loguru import logger
@@ -201,10 +202,17 @@ class ChatService:
             AI assistant's response
         """
         try:
-            lm = self._get_llm()
-            
-            # Build system prompt for chat assistant
-            system_prompt = """You are a helpful AI assistant for the ROMA-01 cryptocurrency futures trading platform. 
+            return await asyncio.to_thread(self._chat_sync, message)
+                
+        except Exception as e:
+            logger.error(f"Error in chat service: {e}", exc_info=True)
+            raise
+
+    def _chat_sync(self, message: str) -> str:
+        """Run chat module synchronously inside a worker thread."""
+        lm = self._get_llm()
+
+        system_prompt = """You are a helpful AI assistant for the ROMA-01 cryptocurrency futures trading platform. 
 Your role is to help users understand:
 - Trading strategies and prompt suggestions
 - Risk management concepts
@@ -215,19 +223,14 @@ Provide clear, concise, and helpful responses. If asked about trading prompts, p
 If asked about risk management, explain the 4-layer risk management system.
 Always be helpful and professional."""
 
-            # Use per-request DSPy context to avoid global configuration conflicts
-            with dspy.context(lm=lm):
-                chat_module = dspy.ChainOfThought(ChatResponse)
-                result = chat_module(
-                    system_context=system_prompt,
-                    user_message=message
-                )
-            
-            return result.response.strip()
-                
-        except Exception as e:
-            logger.error(f"Error in chat service: {e}", exc_info=True)
-            raise
+        with dspy.context(lm=lm):
+            chat_module = dspy.ChainOfThought(ChatResponse)
+            result = chat_module(
+                system_context=system_prompt,
+                user_message=message
+            )
+
+        return result.response.strip()
 
 
 # Global chat service instance (will be initialized in main.py)
@@ -247,4 +250,3 @@ def initialize_chat_service(agent_manager: AgentManager):
     global chat_service
     chat_service = ChatService(agent_manager)
     logger.info("Chat service initialized")
-

@@ -6,14 +6,42 @@ Complete guide to configuring the ROMA Trading Platform with account-centric arc
 
 ## 📋 Table of Contents
 
-1. [Account-Centric Architecture](#account-centric-architecture)
-2. [Environment Variables](#environment-variables)
-3. [Trading Configuration](#trading-configuration)
-4. [DEX Account Configuration](#dex-account-configuration)
-5. [Model Configuration](#model-configuration)
-6. [Agent Configuration](#agent-configuration)
-7. [Risk Management](#risk-management)
-8. [Advanced Settings](#advanced-settings)
+1. [Settings Portal Quick Start](#settings-portal-quick-start)
+2. [Account-Centric Architecture](#account-centric-architecture)
+3. [Environment Variables](#environment-variables)
+4. [Trading Configuration](#trading-configuration)
+5. [DEX Account Configuration](#dex-account-configuration)
+6. [Model Configuration](#model-configuration)
+7. [Agent Configuration](#agent-configuration)
+8. [Risk Management](#risk-management)
+9. [Advanced Settings](#advanced-settings)
+
+---
+
+## ⚙️ Settings Portal Quick Start
+
+> All core configuration can be managed from the **Settings** page—no need to edit YAML manually. The steps below cover the most common workflows; manual YAML guidance is still available later in this document.
+
+1. Open the **Settings** entry in the main navigation.
+2. Sign in with the administrator account (credentials live in `trading_config.yaml > auth.admin`; change the password immediately after the first login). The default username is `admin` and the default password is `admin123`.
+3. Use the tab bar to switch between `General / Accounts / Models / Agents / Prompts`:
+   - **General**: System-wide options such as scan interval, concurrent agent limit, log level, and default prompt language.
+   - **Accounts**: Create or edit DEX accounts (Aster and Hyperliquid are supported) while preserving `${ENV}` placeholders.
+   - **Models**: Manage LLM providers, model parameters, and API keys.
+   - **Agents**: Bind accounts to models, tune risk parameters, and choose prompt languages.
+   - **Prompts**: Edit each agent’s custom prompts and preview the full system prompt.
+4. After any change, the sticky action bar shows **Discard** and **Save** buttons:
+   - Clicking **Save** opens a JSON diff preview; confirm to write changes back to `trading_config.yaml` and trigger the backend hot reload.
+   - Once saved, the page header displays the latest editor and timestamp.
+5. To export the current configuration, use the **Export YAML** button in the upper-right corner (downloads the latest snapshot).
+
+### FAQ
+
+| Issue | Resolution |
+|-------|------------|
+| Cannot sign in | Verify whether the admin credentials were recently updated. If the password is lost, edit `trading_config.yaml > auth.admin` on the server and regenerate the hash. |
+| Save failed | Review the inline error message (e.g., duplicate ID or missing reference), fix the offending fields, then save again. |
+| Environment variables show empty values | The portal resolves `${ENV}` placeholders only when the server has those variables defined; otherwise the placeholder is kept as-is in storage. |
 
 ---
 
@@ -441,27 +469,29 @@ default_coins:
 
 ## 🔄 Configuration Changes
 
-### Applying Changes
+### Recommended：使用 Settings Portal
 
-1. **Edit configuration file**:
-```bash
-nano backend/config/trading_config.yaml
-# or
-nano backend/config/models/deepseek_aggressive.yaml
-```
+1. 登录 Settings，完成字段修改。
+2. 点击 **Save** 并确认差异。
+3. 后端会自动热重载，无需手动重启服务。
 
-2. **Restart backend**:
-```bash
-cd backend
-# Stop: Ctrl+C
-./start.sh
-```
+### 手动方式（仅当 Settings 不可用时）
 
-3. **Changes take effect immediately**
+1. 编辑配置文件：
+   ```bash
+   nano backend/config/trading_config.yaml
+   ```
+2. 重启后端服务：
+   ```bash
+   cd backend
+   # Stop: Ctrl+C
+   ./start.sh
+   ```
 
 ### Hot Reload
 
-❌ **Not supported** - Requires restart
+✅ **通过 Settings 保存时支持热重载**  
+❌ 手动修改 YAML 后仍需重启后端
 
 ### Validation
 

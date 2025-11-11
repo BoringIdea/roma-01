@@ -7,7 +7,7 @@ import { getTranslation } from "@/lib/i18n";
 import { useState, useEffect, useRef } from "react";
 import useSWR from "swr";
 import { api } from "@/lib/api";
-import { getModelColor } from "@/lib/model/meta";
+import { getAgentModelColor } from "@/lib/model/meta";
 
 export function Header() {
   const theme = useTheme((s) => s.theme);
@@ -112,7 +112,7 @@ export function Header() {
               >
                 <div className="py-1">
                   {agents.map((agent) => {
-                    const color = getModelColor(agent.id);
+                    const color = getAgentModelColor(agent);
                     return (
                       <Link
                         key={agent.id}
@@ -158,6 +158,11 @@ export function Header() {
               </div>
             )}
           </div>
+          
+          {/* Settings Link */}
+          <Link href="/settings" className="font-semibold hover:opacity-70 transition-opacity uppercase tracking-wider" style={{ color: "inherit" }}>
+            {t.header.settings}
+          </Link>
 
           {/* About Link */}
           <Link href="/about" className="font-semibold hover:opacity-70 transition-opacity uppercase tracking-wider" style={{ color: "inherit" }}>

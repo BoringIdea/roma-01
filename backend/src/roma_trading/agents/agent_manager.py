@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """
 Agent Manager - Orchestrates multiple trading agents.
 
@@ -8,12 +10,85 @@ Handles:
 """
 
 import asyncio
-from typing import Dict, List
+from typing import Dict, List, Optional
 from pathlib import Path
 import yaml
 from loguru import logger
 
 from .trading_agent import TradingAgent
+
+# Mapping of various model identifiers to canonical frontend IDs
+MODEL_ALIAS_MAP = {
+    "deepseek-chat": "deepseek-chat-v3.1",
+    "deepseek-chat-v3.1": "deepseek-chat-v3.1",
+    "deepseek-v3.1": "deepseek-chat-v3.1",
+    "deepseek": "deepseek-chat-v3.1",
+    "qwen-max": "qwen3-max",
+    "qwen3-max": "qwen3-max",
+    "qwen-02": "qwen3-max",
+    "qwen": "qwen3-max",
+    "claude-sonnet-4.5": "claude-sonnet-4.5",
+    "claude": "claude-sonnet-4.5",
+    "grok-4": "grok-4",
+    "grok": "grok-4",
+    "gemini-2.5-pro": "gemini-2.5-pro",
+    "gemini": "gemini-2.5-pro",
+    "gpt-5": "gpt-5",
+    "gpt5": "gpt-5",
+}
+
+PROVIDER_DEFAULT_MODEL = {
+    "deepseek": "deepseek-chat-v3.1",
+    "qwen": "qwen3-max",
+    "anthropic": "claude-sonnet-4.5",
+    "xai": "grok-4",
+    "google": "gemini-2.5-pro",
+    "openai": "gpt-5",
+}
+
+
+def _resolve_canonical_model_id(
+    model: Optional[str],
+    provider: Optional[str],
+    config_id: Optional[str],
+) -> str:
+    """
+    Resolve various backend model identifiers to a canonical frontend ID.
+    
+    Args:
+        model: Actual LLM model string (e.g., "deepseek-chat")
+        provider: Model provider (e.g., "deepseek")
+        config_id: Model config ID from trading_config.yaml (e.g., "deepseek-v3.1")
+    
+    Returns:
+        Canonical model identifier used by the frontend color/icon registry.
+    """
+    candidates = [
+        model,
+        config_id,
+        f"{provider}-{model}" if provider and model else None,
+        f"{provider}-{config_id}" if provider and config_id else None,
+    ]
+
+    for candidate in candidates:
+        if not candidate:
+            continue
+        key = str(candidate).strip().lower()
+        if key in MODEL_ALIAS_MAP:
+            return MODEL_ALIAS_MAP[key]
+
+    if provider:
+        provider_key = provider.strip().lower()
+        if provider_key in PROVIDER_DEFAULT_MODEL:
+            return PROVIDER_DEFAULT_MODEL[provider_key]
+
+    if model and model.strip():
+        return model.strip()
+
+    if config_id and config_id.strip():
+        return config_id.strip()
+
+    return ""
 
 
 class AgentManager:
@@ -27,6 +102,7 @@ class AgentManager:
         """Initialize agent manager."""
         self.agents: Dict[str, TradingAgent] = {}
         self.tasks: Dict[str, asyncio.Task] = {}
+        self.config_path: str = "config/trading_config.yaml"
         
         # Global trading lock to prevent concurrent trading
         # This ensures only one agent can execute trades at a time
@@ -45,6 +121,9 @@ class AgentManager:
         Args:
             config_path: Path to main trading configuration
         """
+        # Remember config path for reloads
+        self.config_path = config_path
+
         # Load main config
         with open(config_path, "r") as f:
             main_config = yaml.safe_load(f)
@@ -284,6 +363,16 @@ class AgentManager:
         
         logger.info("All agents stopped")
 
+    async def reload_agents(self, config_path: str | None = None):
+        """Reload agents from configuration, restarting trading loops."""
+        logger.info("Reloading agents from config")
+        await self.stop_all()
+        self.agents.clear()
+        self.tasks.clear()
+        path = config_path or self.config_path
+        await self.load_agents_from_config(path)
+        await self.start_all()
+
     def get_agent(self, agent_id: str) -> TradingAgent:
         """Get agent by ID."""
         if agent_id not in self.agents:
@@ -295,6 +384,22 @@ class AgentManager:
         result = []
         for agent_id, agent in self.agents.items():
             status = agent.get_status()
+            llm_cfg = agent.config.get("llm", {})
+            model_provider = status.get("model_provider") or llm_cfg.get("provider")
+            model_config_id = llm_cfg.get("model_id")
+            model_actual = status.get("model_id") or llm_cfg.get("model")
+            canonical_model_id = _resolve_canonical_model_id(
+                model_actual,
+                model_provider,
+                model_config_id,
+            )
+            model_identifier = (
+                canonical_model_id
+                or model_actual
+                or model_config_id
+                or agent_id
+            )
+
             # Flatten the structure for frontend
             result.append({
                 "id": agent_id,
@@ -305,8 +410,10 @@ class AgentManager:
                 # Added fields for multi-DEX/frontend filters
                 "dex_type": agent.config.get("exchange", {}).get("type", "aster"),
                 "account_id": agent.config.get("exchange", {}).get("account_id") or agent.config.get("exchange", {}).get("user"),
-                "model_id": agent.config.get("llm", {}).get("model_id") or agent.config.get("llm", {}).get("model"),  # Use model_id if available, fallback to model
-                "model_provider": agent.config.get("llm", {}).get("provider"),
+                "model_id": model_identifier,
+                "model_config_id": model_config_id,
+                "llm_model": model_actual,
+                "model_provider": model_provider,
             })
         return result
 

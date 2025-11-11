@@ -13,7 +13,13 @@ system:
   scan_interval_minutes: 3
   max_concurrent_agents: 6
   log_level: "INFO"
-  prompt_language: "en" # zh(中文) or en(English)
+  prompt_language: "en" # zh（中文） or en(English)
+
+auth:
+  admin:
+    username: "admin"
+    password_hash: "pbkdf2_sha256$600000$gxtnJqmRLdRxef4d6bljzA==$ZwvN+9xZAJroC1BFdop9TgJEkL3ok+76+e/RHAdU0fI="
+    updated_at: "2025-11-10T00:00:00Z"
 
 api:
   host: "0.0.0.0"
@@ -63,46 +69,46 @@ models:
     temperature: 0.15
     max_tokens: 4000
   
-  # Qwen3 Max
-  - id: "qwen3-max"
-    provider: "qwen"
-    api_key: ${QWEN_API_KEY}
-    model: "qwen-max"
-    location: "china"  # "china" for China region, "international" or other values for international region
-    temperature: 0.15
-    max_tokens: 4000
+  # # Qwen3 Max
+  # - id: "qwen3-max"
+  #   provider: "qwen"
+  #   api_key: ${QWEN_API_KEY}
+  #   model: "qwen-max"
+  #   location: "china"  # "china" for China region, "international" or other values for international region
+  #   temperature: 0.15
+  #   max_tokens: 4000
   
-  # Claude Sonnet 4.5
-  - id: "claude-sonnet-4.5"
-    provider: "anthropic"
-    api_key: ${ANTHROPIC_API_KEY}
-    model: "claude-sonnet-4.5"
-    temperature: 0.15
-    max_tokens: 4000
+  # # Claude Sonnet 4.5
+  # - id: "claude-sonnet-4.5"
+  #   provider: "anthropic"
+  #   api_key: ${ANTHROPIC_API_KEY}
+  #   model: "claude-sonnet-4.5"
+  #   temperature: 0.15
+  #   max_tokens: 4000
   
-  # GPT-5
-  - id: "gpt-5"
-    provider: "openai"
-    api_key: ${OPENAI_API_KEY}
-    model: "gpt-5"
-    temperature: 0.15
-    max_tokens: 4000
+  # # GPT-5
+  # - id: "gpt-5"
+  #   provider: "openai"
+  #   api_key: ${OPENAI_API_KEY}
+  #   model: "gpt-5"
+  #   temperature: 0.15
+  #   max_tokens: 4000
   
-  # Grok 4
-  - id: "grok-4"
-    provider: "xai"
-    api_key: ${XAI_API_KEY}
-    model: "grok-4"
-    temperature: 0.15
-    max_tokens: 4000
+  # # Grok 4
+  # - id: "grok-4"
+  #   provider: "xai"
+  #   api_key: ${XAI_API_KEY}
+  #   model: "grok-4"
+  #   temperature: 0.15
+  #   max_tokens: 4000
   
-  # Gemini 2.5 Pro
-  - id: "gemini-2.5-pro"
-    provider: "google"
-    api_key: ${GOOGLE_API_KEY}
-    model: "gemini-2.5-pro"
-    temperature: 0.15
-    max_tokens: 4000
+  # # Gemini 2.5 Pro
+  # - id: "gemini-2.5-pro"
+  #   provider: "google"
+  #   api_key: ${GOOGLE_API_KEY}
+  #   model: "gemini-2.5-pro"
+  #   temperature: 0.15
+  #   max_tokens: 4000
 
 # ============================================
 # Agents: Bind accounts with models
@@ -136,9 +142,9 @@ agents:
         stop_loss_pct: 3
         take_profit_pct: 10
       advanced_orders:
-        enable_take_profit: true
+        enable_take_profit: false
         take_profit_pct: 5.0
-        enable_stop_loss: true
+        enable_stop_loss: false
         stop_loss_pct: 2.0
       trading_style: "balanced"
       custom_prompts:

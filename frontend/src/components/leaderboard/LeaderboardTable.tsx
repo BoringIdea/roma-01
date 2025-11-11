@@ -3,7 +3,7 @@
 import { useState, useMemo } from "react";
 import useSWR from "swr";
 import { api } from "@/lib/api";
-import { getModelName, getModelColor } from "@/lib/model/meta";
+import { getAgentModelColor } from "@/lib/model/meta";
 import { fmtUSD } from "@/lib/utils/formatters";
 import Link from "next/link";
 import { useLanguage } from "@/store/useLanguage";
@@ -68,7 +68,7 @@ function LeaderboardRow({
     { refreshInterval: 60000 }
   );
 
-  const color = getModelColor(agent.id);
+  const color = getAgentModelColor(agent);
   
   // If not running, show gray row
   if (!isRunning) {

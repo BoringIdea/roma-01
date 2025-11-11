@@ -6,7 +6,7 @@ import AgentStatsSummary from "@/components/agent/AgentStatsSummary";
 import AgentPositionsTable from "@/components/agent/AgentPositionsTable";
 import AgentTradesTable from "@/components/agent/AgentTradesTable";
 import AgentDecisionsHistory from "@/components/agent/AgentDecisionsHistory";
-import { getModelColor } from "@/lib/model/meta";
+import { getAgentModelColor } from "@/lib/model/meta";
 import { api } from "@/lib/api";
 
 export default function AgentDetailPage() {
@@ -19,7 +19,12 @@ export default function AgentDetailPage() {
   });
 
   const agentName = agentInfo?.name || id;
-  const color = getModelColor(id);
+  const color = getAgentModelColor({
+    model_id: agentInfo?.model_id,
+    model_config_id: agentInfo?.model_config_id,
+    llm_model: agentInfo?.llm_model,
+    id,
+  });
 
   return (
     <div 

@@ -190,12 +190,12 @@ class PerformanceAnalyzer:
                 f"Max Drawdown: {metrics['max_drawdown']:.2f}%",
                 f"Total P/L: ${metrics['total_pnl']:+.2f}",
             ]
-            
-            if metrics["best_trade"]:
-                lines.append(f"Best: {metrics['best_trade']['symbol']} ${metrics['best_trade']['pnl']:+.2f}")
-            
-            if metrics["worst_trade"]:
-                lines.append(f"Worst: {metrics['worst_trade']['symbol']} ${metrics['worst_trade']['pnl']:+.2f}")
+        
+        if metrics["best_trade"]:
+            lines.append(f"Best: {metrics['best_trade']['symbol']} ${metrics['best_trade']['pnl']:+.2f}")
+        
+        if metrics["worst_trade"]:
+            lines.append(f"Worst: {metrics['worst_trade']['symbol']} ${metrics['worst_trade']['pnl']:+.2f}")
         
         return "\n".join(lines)
 

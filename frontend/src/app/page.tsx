@@ -6,6 +6,7 @@ import { MultiAgentChart } from "@/components/MultiAgentChart";
 import { RightSideTabs } from "@/components/RightSideTabs";
 import useSWR from "swr";
 import { api } from "@/lib/api";
+import type { Agent } from "@/types";
 
 export default function HomePage() {
   // Fetch running agents from API
@@ -16,19 +17,31 @@ export default function HomePage() {
   });
 
   // Use agents directly from API, no need to merge with predefined models
-  const agents = useMemo(() => {
-    return (runningAgents || []).map(a => ({
-      id: a.id,
-      name: a.name || a.id,
-      is_running: a.is_running || false,
-      cycle_count: a.cycle_count || 0,
-      runtime_minutes: a.runtime_minutes || 0,
-      // Multi-DEX fields from API
-      dex_type: a.dex_type,
-      account_id: a.account_id,
-      model_id: a.model_id,
-      model_provider: a.model_provider,
-    }));
+  const agents = useMemo<Agent[]>(() => {
+    return (runningAgents || []).map((a): Agent => {
+      const dexTypeRaw = (a.dex_type || "").toLowerCase();
+      const dexTypeNorm: Agent["dex_type"] =
+        dexTypeRaw === "hyperliquid"
+          ? "hyperliquid"
+          : dexTypeRaw === "aster"
+          ? "aster"
+          : undefined;
+
+      return {
+        id: a.id,
+        name: a.name || a.id,
+        is_running: a.is_running || false,
+        cycle_count: a.cycle_count || 0,
+        runtime_minutes: a.runtime_minutes || 0,
+        // Multi-DEX fields from API
+        dex_type: dexTypeNorm,
+        account_id: a.account_id,
+        model_id: a.model_id,
+        model_config_id: a.model_config_id,
+        model_provider: a.model_provider,
+        llm_model: a.llm_model,
+      };
+    });
   }, [runningAgents]);
 
   // Show PriceTicker even while loading

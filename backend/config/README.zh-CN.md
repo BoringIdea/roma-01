@@ -45,6 +45,14 @@
  | `system.log_level` | String | 日志等级（DEBUG / INFO / WARNING / ERROR） | INFO |
  | `system.prompt_language` | String | 系统提示词语言（`en` 或 `zh`） | en |
 
+### 认证设置
+
+| 参数 | 类型 | 说明 | 默认值 |
+|------|------|------|--------|
+| `auth.admin.username` | String | Settings 配置中心登录所使用的管理员用户名 | admin |
+| `auth.admin.password_hash` | String | 管理员密码的 PBKDF2-SHA256 哈希值 | `admin123` 的哈希 |
+| `auth.admin.updated_at` | String | 最近一次更新管理员密码的时间 | 2025-11-10T00:00:00Z |
+
  ### API 设置
 
  | 参数 | 类型 | 说明 | 默认值 |

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useEffect, useRef } from "react";
+import { useMemo, useState, useEffect, useRef, useCallback } from "react";
 import useSWR from "swr";
 import {
   LineChart,
@@ -14,9 +14,11 @@ import {
 } from "recharts";
 import { format } from "date-fns";
 import { api } from "@/lib/api";
-import { getModelColor, getModelIcon } from "@/lib/model/meta";
+import { getAgentModelColor, getAgentModelIcon } from "@/lib/model/meta";
 import { adjustLuminance } from "@/lib/utils/color";
 import type { Agent, EquityPoint } from "@/types";
+import { useLanguage } from "@/store/useLanguage";
+import { getTranslation } from "@/lib/i18n";
 
 interface AccountValueChartProps {
   agents: Agent[];
@@ -91,6 +93,10 @@ function useAgentsEquityData(agentIds: string[]) {
 }
 
 export function AccountValueChart({ agents }: AccountValueChartProps) {
+  const language = useLanguage((s) => s.language);
+  const translations = getTranslation(language);
+  const tLeaderboard = translations.leaderboard;
+  const tCharts = translations.charts;
   const [range, setRange] = useState<Range>("ALL");
   const [mode, setMode] = useState<Mode>("$");
   const [vw, setVw] = useState<number>(0);
@@ -102,7 +108,10 @@ export function AccountValueChart({ agents }: AccountValueChartProps) {
       id: a.id,
       name: a.name || a.id,
       is_running: true,
-      model_id: a.model_id, // For getting model color and icon
+      model_id: a.model_id,
+      model_config_id: a.model_config_id,
+      model_provider: a.model_provider,
+      llm_model: a.llm_model,
     }));
     
     return result;
@@ -210,6 +219,45 @@ export function AccountValueChart({ agents }: AccountValueChartProps) {
     return chartDataGross;
   }, [chartDataAdjusted, chartDataGross, mode, runningAgentIds]);
 
+  const yAxisDomain = useMemo<[number | "auto", number | "auto"]>(() => {
+    const visibleIds = runningAgentIds.filter((id) =>
+      active.size ? active.has(id) : true
+    );
+    let min = Number.POSITIVE_INFINITY;
+    let max = Number.NEGATIVE_INFINITY;
+
+    if (visibleIds.length === 0 || displayData.length === 0) {
+      return ["auto", "auto"];
+    }
+
+    for (const point of displayData) {
+      for (const id of visibleIds) {
+        const value = (point as any)[id];
+        if (typeof value === "number" && Number.isFinite(value)) {
+          if (value < min) min = value;
+          if (value > max) max = value;
+        }
+      }
+    }
+
+    if (!Number.isFinite(min) || !Number.isFinite(max)) {
+      return ["auto", "auto"];
+    }
+
+    const range = max - min;
+    const base = range !== 0 ? range : Math.max(Math.abs(max), 1);
+    const padding = base * 0.1;
+
+    const upper = max + padding;
+    let lower = min - padding * 0.6;
+
+    if (mode !== "%" && lower < 0) {
+      lower = 0;
+    }
+
+    return [lower, upper];
+  }, [active, displayData, mode, runningAgentIds]);
+
   // Calculate last index and value per model for end dot rendering
   const lastIdxById = useMemo(() => {
     const m: Record<string, number> = {};
@@ -251,6 +299,32 @@ export function AccountValueChart({ agents }: AccountValueChartProps) {
     }
   };
 
+  const formatYAxisTick = useCallback(
+    (value: number) => {
+      if (mode === "%") {
+        return `${value.toFixed(1)}%`;
+      }
+      if (!Number.isFinite(value)) {
+        return "";
+      }
+      const abs = Math.abs(value);
+      if (abs >= 1_000_000_000) {
+        return `$${(value / 1_000_000_000).toFixed(1)}B`;
+      }
+      if (abs >= 1_000_000) {
+        return `$${(value / 1_000_000).toFixed(1)}M`;
+      }
+      if (abs >= 10_000) {
+        return `$${(value / 1_000).toFixed(1)}K`;
+      }
+      return `$${Number(value).toLocaleString(undefined, {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      })}`;
+    },
+    [mode],
+  );
+
   // End-logo size and dynamic right margin
   const endLogoBaseSize = vw < 380 ? 21 : vw < 640 ? 27 : vw < 1024 ? 42 : 44;
   const endLogoSize = Math.round((endLogoBaseSize * 2) / 3);
@@ -268,9 +342,8 @@ export function AccountValueChart({ agents }: AccountValueChartProps) {
     
     // Get model_id from agent to find correct icon and color
     const agent = runningAgents.find(a => a.id === id);
-    const modelId = agent?.model_id || id; // Fallback to agent id if model_id not available
-    const icon = getModelIcon(modelId);
-    const color = getModelColor(modelId);
+    const icon = getAgentModelIcon(agent);
+    const color = getAgentModelColor(agent);
     const bg = color || "var(--chart-logo-bg)";
     const ring = typeof bg === "string" && bg.startsWith("#")
       ? adjustLuminance(bg, -0.15)
@@ -378,7 +451,7 @@ export function AccountValueChart({ agents }: AccountValueChartProps) {
           className="text-xs font-semibold tracking-wider"
           style={{ color: "var(--muted-text)" }}
         >
-          Account Value
+          {tCharts?.accountValue ?? tLeaderboard.accountValue}
         </div>
         <div className="hidden sm:flex items-center gap-2 text-[11px]">
           {/* Range Toggle */}
@@ -438,8 +511,8 @@ export function AccountValueChart({ agents }: AccountValueChartProps) {
               <div className="flex h-full items-center justify-center" style={{ color: "var(--muted-text)" }}>
                 <div className="text-center">
                   <div className="text-2xl mb-2">📈</div>
-                  <p className="text-sm">No equity data available yet</p>
-                  <p className="text-xs mt-1">Data will appear after trading starts</p>
+                  <p className="text-sm">{tCharts.noEquityData}</p>
+                  <p className="text-xs mt-1">{tCharts.tradingNotStarted}</p>
                 </div>
               </div>
             ) : (
@@ -474,11 +547,10 @@ export function AccountValueChart({ agents }: AccountValueChartProps) {
                   tick={{ fill: "var(--axis-tick)", fontSize: 11 }}
                 />
                 <YAxis
-                  tickFormatter={(v: number) =>
-                    mode === "%" ? `${v.toFixed(1)}%` : `$${Math.round(v).toLocaleString()}`
-                  }
+                  tickFormatter={formatYAxisTick}
                   tick={{ fill: "var(--axis-tick)", fontSize: 11 }}
                   width={60}
+                  domain={yAxisDomain}
                 />
                 <Tooltip
                   contentStyle={{
@@ -499,8 +571,7 @@ export function AccountValueChart({ agents }: AccountValueChartProps) {
                 {runningAgentIds.map((id) => {
                   // Get model_id from agent to find correct color
                   const agent = runningAgents.find(a => a.id === id);
-                  const modelId = agent?.model_id || id; // Fallback to agent id if model_id not available
-                  const color = getModelColor(modelId);
+                  const color = getAgentModelColor(agent);
                   const agentName = agent?.name || id;
                   
                   return (
@@ -513,6 +584,7 @@ export function AccountValueChart({ agents }: AccountValueChartProps) {
                       dot={renderEndDot(id)}
                       name={agentName}
                       hide={active.size > 0 && !active.has(id)}
+                      connectNulls
                       className="series"
                     />
                   );
@@ -535,9 +607,8 @@ export function AccountValueChart({ agents }: AccountValueChartProps) {
                 {runningAgents.map((agent) => {
                   const activeOn = active.size === 0 || active.has(agent.id);
                   // Use model_id to get correct icon and color
-                  const modelId = agent.model_id || agent.id;
-                  const icon = getModelIcon(modelId);
-                  const displayColor = getModelColor(modelId);
+                  const icon = getAgentModelIcon(agent);
+                  const displayColor = getAgentModelColor(agent);
                   
                   return (
                     <button
@@ -601,8 +672,8 @@ export function AccountValueChart({ agents }: AccountValueChartProps) {
                 const activeOn = active.size === 0 || active.has(agent.id);
                 // Use model_id to get correct icon and color
                 const modelId = agent.model_id || agent.id;
-                const icon = getModelIcon(modelId);
-                const displayColor = getModelColor(modelId);
+                const icon = getAgentModelIcon(agent);
+                const displayColor = getAgentModelColor(agent);
                 
                 return (
                   <button

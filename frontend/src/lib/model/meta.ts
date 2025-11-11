@@ -50,8 +50,10 @@ const modelRegistry: Record<string, ModelMeta> = {
 const modelIdMap: Record<string, string> = {
   "deepseek-v3.1": "deepseek-chat-v3.1",
   "deepseek-chat": "deepseek-chat-v3.1",
+  "deepseek": "deepseek-chat-v3.1",
   "qwen3-max": "qwen3-max",
   "qwen-max": "qwen3-max",
+  "qwen-02": "qwen3-max",
   "claude-sonnet-4.5": "claude-sonnet-4.5",
   "grok-4": "grok-4",
   "gemini-2.5-pro": "gemini-2.5-pro",
@@ -83,6 +85,45 @@ export function resolveCanonicalId(id: string): string {
 
 export function registerModel(meta: ModelMeta) {
   modelRegistry[meta.id] = meta;
+}
+
+type AgentLike = {
+  model_id?: string | null;
+  llm_model?: string | null;
+  model_config_id?: string | null;
+  model_provider?: string | null;
+  id?: string | null;
+};
+
+function pickAgentModelKey(agent?: AgentLike): string {
+  if (!agent) return "";
+  return (
+    agent.model_id ||
+    agent.llm_model ||
+    agent.model_config_id ||
+    agent.model_provider ||
+    agent.id ||
+    ""
+  );
+}
+
+export function getAgentModelKey(agent?: AgentLike): string {
+  const key = pickAgentModelKey(agent);
+  return key ? resolveModelId(key) : key;
+}
+
+export function getAgentModelColor(agent?: AgentLike): string {
+  return getModelColor(getAgentModelKey(agent));
+}
+
+export function getAgentModelIcon(agent?: AgentLike): string | undefined {
+  const key = getAgentModelKey(agent);
+  return key ? getModelIcon(key) : undefined;
+}
+
+export function getAgentModelName(agent?: AgentLike): string {
+  const key = getAgentModelKey(agent);
+  return key ? getModelName(key) : "";
 }
 
 // Get all defined models in display order

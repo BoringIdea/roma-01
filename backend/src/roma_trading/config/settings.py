@@ -72,6 +72,11 @@ class Settings(BaseSettings):
     api_port: int = 8080
     cors_origins: str = "http://localhost:3000"
 
+    # Config Portal Auth
+    config_auth_secret: str = "roma-config-secret"
+    config_token_exp_minutes: int = 120
+    config_file_path: str = "config/trading_config.yaml"
+
     @property
     def cors_origins_list(self) -> List[str]:
         """Parse CORS origins into a list."""

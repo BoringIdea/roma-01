@@ -51,6 +51,14 @@ This file controls system-wide settings that apply to all trading agents.
 | `system.log_level` | String | Logging level (DEBUG, INFO, WARNING, ERROR) | INFO |
 | `system.prompt_language` | String | Default language for system prompts (`en` or `zh`) | en |
 
+### Authentication Settings
+
+| Parameter | Type | Description | Default |
+|-----------|------|-------------|---------|
+| `auth.admin.username` | String | Default administrator username used for Settings portal login | admin |
+| `auth.admin.password_hash` | String | PBKDF2-SHA256 hash of the administrator password | Hash for `admin123` |
+| `auth.admin.updated_at` | String | ISO timestamp when the password was last updated | 2025-11-10T00:00:00Z |
+
 ### API Settings
 
 | Parameter | Type | Description | Default |

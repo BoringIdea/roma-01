@@ -3,7 +3,7 @@
 import Header from "@/components/layout/Header";
 import useSWR from "swr";
 import { api } from "@/lib/api";
-import { getModelColor, getModelName } from "@/lib/model/meta";
+import { getAgentModelColor, getAgentModelName } from "@/lib/model/meta";
 import Link from "next/link";
 import { Activity, TrendingUp, DollarSign } from "lucide-react";
 
@@ -73,10 +73,10 @@ export default function ModelsPage() {
                       <div className="flex items-center gap-2 mb-2">
                         <div
                           className="w-3 h-3 rounded-full"
-                          style={{ background: getModelColor(agent.id) }}
+                          style={{ background: getAgentModelColor(agent) }}
                         />
                         <h3 className="font-bold text-lg" style={{ color: "var(--foreground)" }}>
-                          {agent.name || agent.id}
+                        {agent.name || getAgentModelName(agent) || agent.id}
                         </h3>
                       </div>
                       <p className="text-xs mb-2" style={{ color: "var(--muted-text)" }}>

@@ -113,10 +113,8 @@ class TradingAgent:
         # Advanced order configuration
         self.advanced_orders = self.config["strategy"].get("advanced_orders", {})
         
-        # Initialize DSPy LLM
-        self._init_llm()
-        
-        # Decision module
+        # Initialize DSPy LLM and decision module
+        self.lm = self._init_llm()
         self.decision_module = dspy.ChainOfThought(TradingDecision)
         
         # Trading state - restore cycle count from previous logs
@@ -205,8 +203,8 @@ class TradingAgent:
         else:
             raise ValueError(f"Unsupported LLM provider: {provider}")
         
-        dspy.configure(lm=lm)
-        logger.info(f"Configured DSPy with {provider}")
+        logger.info(f"Initialized DSPy LM for provider '{provider}'")
+        return lm
 
     async def start(self):
         """Start the trading loop."""
@@ -286,9 +284,10 @@ class TradingAgent:
             
             # 6. AI Decision
             logger.info("Calling AI for decision...")
-            result = self.decision_module(
-                system_prompt=system_prompt,
-                market_context=market_context
+            result = await asyncio.to_thread(
+                self._run_decision_module,
+                system_prompt,
+                market_context,
             )
             
             # 7. Parse and execute decisions
@@ -359,7 +358,15 @@ class TradingAgent:
             return self._normalize_language(language)
         return self.default_prompt_language or "en"
 
-    def _build_system_prompt(self, language: Optional[str] = None) -> str:
+    def _run_decision_module(self, system_prompt: str, market_context: str):
+        """Execute DSPy decision module in a worker thread to avoid blocking event loop."""
+        with dspy.context(lm=self.lm):
+            return self.decision_module(
+                system_prompt=system_prompt,
+                market_context=market_context,
+            )
+
+    def _build_system_prompt(self, language: Optional[str] = None, include_custom: bool = True) -> str:
         """Build system prompt with trading rules and optional custom prompts."""
         lang = self._resolve_prompt_language(language)
         risk = self.config["strategy"]["risk_management"]
@@ -568,7 +575,7 @@ You should have alignment across multiple dimensions before opening a position, 
         # Add custom prompts if enabled
         custom_prompts = self.config["strategy"].get("custom_prompts", {})
         
-        if custom_prompts.get("enabled", False):
+        if include_custom and custom_prompts.get("enabled", False):
             custom_sections = []
             heading_map = {
                 "trading_philosophy": {
@@ -774,9 +781,9 @@ Partial close example:
             lines.append(f"未实现盈亏：${unrealized:+.2f}\n")
         else:
             lines.append("**Account:**")
-            lines.append(f"💰 Available for Trading: ${agent_max_balance:.2f} ← USE THIS FOR DECISIONS")
-            if max_usage_pct < 100:
-                lines.append(f"(Limited to {max_usage_pct}% of ${available_balance:.2f} for multi-agent)")
+        lines.append(f"💰 Available for Trading: ${agent_max_balance:.2f} ← USE THIS FOR DECISIONS")
+        if max_usage_pct < 100:
+            lines.append(f"(Limited to {max_usage_pct}% of ${available_balance:.2f} for multi-agent)")
             lines.append(f"Total Balance: ${total_balance:.2f}")
             lines.append(f"Unrealized P/L: ${unrealized:+.2f}\n")
         
