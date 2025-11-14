@@ -74,10 +74,11 @@ function AgentCard({
   // Calculate return rate using adjusted balance and initial balance
   const adjustedBalance = account.adjusted_total_balance ?? account.total_wallet_balance ?? 0;
   const initialBalance = account.initial_balance ?? 10000;
-  const returnRate = initialBalance > 0 ? ((adjustedBalance - initialBalance) / initialBalance) * 100 : 0;
-
-  // Total P&L for display (can use unrealized or adjusted balance difference)
+  const netDeposits = account.net_deposits ?? 0;
+  const investedCapital = initialBalance + Math.max(netDeposits, 0);
+  const denominator = investedCapital > 0 ? investedCapital : Math.max(initialBalance, 1);
   const totalPnl = adjustedBalance - initialBalance;
+  const returnRate = denominator > 0 ? (totalPnl / denominator) * 100 : 0;
   const isProfit = returnRate >= 0;
 
   return (
@@ -151,4 +152,3 @@ function AgentCard({
     </button>
   );
 }
-
