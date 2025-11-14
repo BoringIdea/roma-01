@@ -2,94 +2,51 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  /* default to dark theme */
-  --background: #0a0a0a;
-  --foreground: #ededed;
-  --header-h: 40px;
-  --ticker-h: 28px;
-  
-  /* Theme-aware colors */
-  --chart-logo-bg: rgba(255, 255, 255, 0.9);
-  --chart-logo-ring: rgba(255, 255, 255, 0.28);
-  --logo-chip-bg: rgba(255, 255, 255, 0.06);
-  --logo-chip-ring: rgba(255, 255, 255, 0.15);
-  
-  /* Model brand colors */
-  --brand-deepseek: #4d6bfe;
-  --brand-qwen: #8b5cf6;
-  --brand-claude: #ff6b35;
-  --brand-gpt: #10a37f;
-  
-  /* Skeleton background */
-  --skeleton-bg: rgba(255, 255, 255, 0.1);
-  --watermark-color: rgba(255, 255, 255, 0.06);
-  
-  /* Chart/UI themed variables (dark defaults) */
-  --panel-bg: #0a0a0a;
-  --panel-border: rgba(255, 255, 255, 0.1);
-  --muted-text: #a1a1aa;
-  --axis-tick: #a1a1aa;
-  --grid-stroke: rgba(255, 255, 255, 0.08);
-  --ref-line: #a1a1aa;
-  --chip-border: rgba(255, 255, 255, 0.15);
-  --btn-active-bg: rgba(255, 255, 255, 0.1);
-  --btn-active-fg: #e4e4e7;
-  --btn-inactive-fg: #d4d4d8;
-  --btn-hover-bg: rgba(255, 255, 255, 0.05);
-  --tooltip-bg: #09090b;
-  --tooltip-border: rgba(255, 255, 255, 0.1);
-  --tooltip-fg: #e4e4e7;
-  --brand-accent: #c084fc;
-  --header-bg: rgba(0, 0, 0, 0.7);
-  --header-border: rgba(255, 255, 255, 0.1);
-}
-
-/* Light theme overrides */
-:root[data-theme="light"] {
-  --background: #ffffff;
-  --foreground: #171717;
-  --chart-logo-bg: rgba(0, 0, 0, 0.75);
-  --chart-logo-ring: rgba(0, 0, 0, 0.25);
-  --logo-chip-bg: rgba(0, 0, 0, 0.06);
-  --logo-chip-ring: rgba(0, 0, 0, 0.15);
-  --skeleton-bg: rgba(0, 0, 0, 0.1);
-  --watermark-color: rgba(0, 0, 0, 0.06);
-  
-  --panel-bg: #ffffff;
-  --panel-border: rgba(0, 0, 0, 0.1);
-  --muted-text: #52525b;
-  --axis-tick: #52525b;
-  --grid-stroke: rgba(0, 0, 0, 0.08);
-  --ref-line: #9ca3af;
-  --chip-border: rgba(0, 0, 0, 0.15);
-  --btn-active-bg: rgba(0, 0, 0, 0.1);
-  --btn-active-fg: #18181b;
-  --btn-inactive-fg: #52525b;
-  --btn-hover-bg: rgba(0, 0, 0, 0.05);
-  --tooltip-bg: #ffffff;
-  --tooltip-border: rgba(0, 0, 0, 0.12);
-  --tooltip-fg: #18181b;
-  --line-too-light-fallback: #4b5563;
-  --table-row-alt: rgba(0, 0, 0, 0.05);
-  --link-hover: #000000;
-  --brand-accent: #7c3aed;
-  --header-bg: rgba(255, 255, 255, 0.7);
-  --header-border: rgba(0, 0, 0, 0.1);
-}
-
+:root,
+:root[data-theme="light"],
 :root[data-theme="dark"] {
-  --background: #0a0a0a;
-  --foreground: #ededed;
-  --line-too-dark-fallback: #d4d4d8;
-  --table-row-alt: rgba(255, 255, 255, 0.05);
-  --link-hover: #ffffff;
+  --background: #ffffff;
+  --foreground: #050505;
+  --header-h: 56px;
+  --ticker-h: 32px;
+  --chart-logo-bg: rgba(0, 0, 0, 0.08);
+  --chart-logo-ring: rgba(0, 0, 0, 0.4);
+  --logo-chip-bg: rgba(0, 0, 0, 0.04);
+  --logo-chip-ring: rgba(0, 0, 0, 0.4);
+  --brand-deepseek: #0f172a;
+  --brand-qwen: #1f2937;
+  --brand-claude: #0f172a;
+  --brand-gpt: #111827;
+  --skeleton-bg: rgba(0, 0, 0, 0.08);
+  --watermark-color: rgba(0, 0, 0, 0.04);
+  --panel-bg: #ffffff;
+  --panel-border: #050505;
+  --muted-text: #050505;
+  --axis-tick: #050505;
+  --grid-stroke: rgba(0, 0, 0, 0.2);
+  --ref-line: #050505;
+  --chip-border: #050505;
+  --btn-active-bg: #050505;
+  --btn-active-fg: #ffffff;
+  --btn-inactive-fg: #050505;
+  --btn-hover-bg: rgba(0, 0, 0, 0.08);
+  --tooltip-bg: #ffffff;
+  --tooltip-border: #050505;
+  --tooltip-fg: #050505;
+  --brand-accent: #050505;
+  --header-bg: #ffffff;
+  --header-border: #050505;
+  --table-row-alt: rgba(0, 0, 0, 0.02);
+  --line-too-light-fallback: #050505;
+  --line-too-dark-fallback: #050505;
+  --link-hover: #050505;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: 'IBM Plex Mono', monospace;
+  font-weight: 600;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
@@ -179,6 +136,26 @@ html, body {
   background: var(--skeleton-bg);
 }
 
+@layer base {
+  * {
+    border-radius: 0;
+  }
+
+  button,
+  select,
+  input,
+  textarea {
+    border: 1px solid var(--panel-border);
+    font-weight: 600;
+    color: var(--foreground);
+    background: var(--panel-bg);
+  }
+
+  a {
+    color: inherit;
+  }
+}
+
 @layer utilities {
   .text-balance {
     text-wrap: balance;
@@ -213,4 +190,3 @@ html, body {
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.3);
 }
-

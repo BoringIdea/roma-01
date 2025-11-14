@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { IBM_Plex_Mono } from "next/font/google";
+import { IBM_Plex_Mono, Space_Grotesk } from "next/font/google";
 import Script from "next/script";
 import "./globals.css";
 import ThemeProvider from "@/components/theme/ThemeProvider";
@@ -8,6 +8,12 @@ import Header from "@/components/layout/Header";
 
 const plexMono = IBM_Plex_Mono({
   variable: "--font-plex-mono",
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+});
+
+const brandFont = Space_Grotesk({
+  variable: "--font-brand",
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
 });
@@ -36,7 +42,7 @@ export default function RootLayout({
 })();`}
         </Script>
       </head>
-      <body className={`${plexMono.variable} antialiased`}>
+      <body className={`${plexMono.variable} ${brandFont.variable} antialiased`}>
         <ThemeProvider />
         <LanguageProvider />
         <div className="min-h-screen flex flex-col">
@@ -49,4 +55,3 @@ export default function RootLayout({
     </html>
   );
 }
-

@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useTheme } from "@/store/useTheme";
 import { useLanguage } from "@/store/useLanguage";
 import { getTranslation } from "@/lib/i18n";
 import { useState, useEffect, useRef } from "react";
@@ -10,8 +9,6 @@ import { api } from "@/lib/api";
 import { getAgentModelColor } from "@/lib/model/meta";
 
 export function Header() {
-  const theme = useTheme((s) => s.theme);
-  const setTheme = useTheme((s) => s.setTheme);
   const language = useLanguage((s) => s.language);
   const setLanguage = useLanguage((s) => s.setLanguage);
   const t = getTranslation(language);
@@ -54,15 +51,10 @@ export function Header() {
         <div className="flex min-w-0 flex-1">
           <Link
             href="/"
-            className="text-2xl font-black tracking-widest hover:opacity-80 transition-all hover:scale-105"
-            style={{ 
-              fontFamily: "var(--font-orbitron)",
-              background: "linear-gradient(135deg, var(--brand-accent) 0%, #60a5fa 50%, #a78bfa 100%)",
-              WebkitBackgroundClip: "text",
-              WebkitTextFillColor: "transparent",
-              backgroundClip: "text",
-              letterSpacing: "0.2em",
-              textShadow: "0 0 30px rgba(96, 165, 250, 0.3)"
+            className="text-3xl font-black uppercase hover:opacity-70 transition-transform tracking-[0.4em]"
+            style={{
+              color: "#050505",
+              fontFamily: "var(--font-brand)",
             }}
           >
             ROMA-01
@@ -237,32 +229,6 @@ export function Header() {
               </div>
             </div>
 
-            {/* Theme Toggle */}
-            <div className="hidden sm:flex items-center gap-1 text-[11px]">
-              <div
-                className="flex overflow-hidden rounded border"
-                style={{ borderColor: "var(--chip-border)" }}
-              >
-                {(["dark", "light", "system"] as const).map((themeOption) => (
-                  <button
-                    key={themeOption}
-                    title={themeOption}
-                    className="px-2 py-1 capitalize chip-btn"
-                    style={
-                      theme === themeOption
-                        ? {
-                            background: "var(--btn-active-bg)",
-                            color: "var(--btn-active-fg)",
-                          }
-                        : { color: "var(--btn-inactive-fg)" }
-                    }
-                    onClick={() => setTheme(themeOption)}
-                  >
-                    {themeOption}
-                  </button>
-                ))}
-              </div>
-            </div>
           </div>
         </div>
       </div>
@@ -271,4 +237,3 @@ export function Header() {
 }
 
 export default Header;
-
