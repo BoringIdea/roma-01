@@ -140,11 +140,12 @@ export function AccountValueChart({ agents }: AccountValueChartProps) {
   }, []);
 
   // Combine equity history from all agents into chart data
-  const { chartDataGross, chartDataAdjusted } = useMemo(() => {
+  const { chartDataGross, chartDataAdjusted, chartDataNetDeposits } = useMemo(() => {
     const timestampMap = new Map<number, {
       timestamp: Date;
       gross: Record<string, number>;
       adjusted: Record<string, number>;
+      net: Record<string, number>;
     }>();
 
     equityDataQueries.forEach(({ agentId, data }) => {
@@ -157,13 +158,16 @@ export function AccountValueChart({ agents }: AccountValueChartProps) {
             timestamp: new Date(point.timestamp),
             gross: {},
             adjusted: {},
+            net: {},
           });
         }
         const bucket = timestampMap.get(timestampMs)!;
         const gross = point.gross_equity ?? point.equity;
         const adjusted = point.adjusted_equity ?? point.equity;
+        const netDeposits = point.net_deposits;
         if (typeof gross === "number") bucket.gross[agentId] = gross;
         if (typeof adjusted === "number") bucket.adjusted[agentId] = adjusted;
+        if (typeof netDeposits === "number") bucket.net[agentId] = netDeposits;
       });
     });
 
@@ -186,38 +190,82 @@ export function AccountValueChart({ agents }: AccountValueChartProps) {
       ...bucket.adjusted,
     }));
 
+    const netDepositPoints = buckets.map((bucket) => ({
+      timestamp: bucket.timestamp,
+      ...bucket.net,
+    }));
+
     return {
       chartDataGross: grossPoints,
       chartDataAdjusted: adjustedPoints,
+      chartDataNetDeposits: netDepositPoints,
     };
   }, [equityDataQueries, range]);
+
+  const initialEquityStats = useMemo(() => {
+    const map: Record<string, { adjusted: number; net: number }> = {};
+    equityDataQueries.forEach(({ agentId, data }) => {
+      if (!data || data.length === 0) return;
+      const first = data[0];
+      const initialAdjusted =
+        typeof first.adjusted_equity === "number"
+          ? first.adjusted_equity
+          : typeof first.equity === "number"
+          ? first.equity
+          : 0;
+      const initialNet =
+        typeof first.net_deposits === "number" ? first.net_deposits : 0;
+      map[agentId] = {
+        adjusted: initialAdjusted,
+        net: initialNet,
+      };
+    });
+    return map;
+  }, [equityDataQueries]);
 
   // Convert to display data (gross for $, adjusted percentage for %)
   const displayData = useMemo(() => {
     if (mode === "%") {
-      const initial: Record<string, number> = {};
-      runningAgentIds.forEach((id) => {
-        const firstPoint = chartDataAdjusted.find(
-          (point) => typeof (point as any)[id] === "number"
-        );
-        const value = firstPoint ? (firstPoint as any)[id] : undefined;
-        initial[id] = typeof value === "number" && value !== 0 ? value : 10000;
-      });
-
-      return chartDataAdjusted.map(point => {
-        const newPoint: any = { timestamp: point.timestamp };
-        runningAgentIds.forEach(id => {
-          const base = initial[id];
+      return chartDataAdjusted.map((point, idx) => {
+        const newPoint: Record<string, any> = { timestamp: point.timestamp };
+        runningAgentIds.forEach((id) => {
           const value = (point as any)[id];
-          if (typeof value === "number" && typeof base === "number" && base !== 0) {
-            newPoint[id] = ((value - base) / base) * 100;
-          }
+          const netPoint = chartDataNetDeposits[idx] as any;
+          const perAgentInitial = initialEquityStats[id];
+          if (!perAgentInitial || typeof value !== "number") return;
+          const initialAdjusted = perAgentInitial.adjusted;
+          const initialNet = perAgentInitial.net;
+          const netValue =
+            typeof netPoint?.[id] === "number" ? netPoint[id] : initialNet;
+          const netDelta = netValue - initialNet;
+          const positiveContrib = Math.max(netDelta, 0);
+          const capitalBase =
+            (typeof initialAdjusted === "number" ? initialAdjusted : 0) +
+            positiveContrib;
+          const denominator =
+            capitalBase > 0
+              ? capitalBase
+              : Math.max(
+                  typeof initialAdjusted === "number" && initialAdjusted !== 0
+                    ? initialAdjusted
+                    : 1,
+                  1,
+                );
+          const pnl = value - initialAdjusted;
+          newPoint[id] = (pnl / denominator) * 100;
         });
         return newPoint;
       });
     }
     return chartDataGross;
-  }, [chartDataAdjusted, chartDataGross, mode, runningAgentIds]);
+  }, [
+    chartDataAdjusted,
+    chartDataGross,
+    chartDataNetDeposits,
+    initialEquityStats,
+    mode,
+    runningAgentIds,
+  ]);
 
   const yAxisDomain = useMemo<[number | "auto", number | "auto"]>(() => {
     const visibleIds = runningAgentIds.filter((id) =>
@@ -737,4 +785,3 @@ export function AccountValueChart({ agents }: AccountValueChartProps) {
 }
 
 export default AccountValueChart;
-

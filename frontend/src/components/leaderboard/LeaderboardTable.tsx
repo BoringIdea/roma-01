@@ -114,9 +114,20 @@ function LeaderboardRow({
   const initialBalance = initialPoint
     ? initialPoint.adjusted_equity ?? initialPoint.equity
     : equityAdjusted || 10000;
+  const initialNetDeposits =
+    initialPoint && typeof initialPoint.net_deposits === "number"
+      ? initialPoint.net_deposits
+      : 0;
   const equityDisplay = account.gross_total_balance ?? account.total_wallet_balance ?? equityAdjusted;
   const totalPnl = equityAdjusted - initialBalance;
-  const returnPct = initialBalance > 0 ? (totalPnl / initialBalance) * 100 : 0;
+  const currentNetDeposits =
+    typeof account.net_deposits === "number"
+      ? account.net_deposits
+      : initialNetDeposits;
+  const netDepositDelta = Math.max(currentNetDeposits - initialNetDeposits, 0);
+  const investedCapital = initialBalance + netDepositDelta;
+  const denominator = investedCapital > 0 ? investedCapital : Math.max(initialBalance, 1);
+  const returnPct = (denominator > 0 ? (totalPnl / denominator) * 100 : 0);
   const sharpe = returnPct > 0 ? returnPct / 100 : returnPct / 50;
 
   return (

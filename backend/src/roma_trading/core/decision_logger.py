@@ -438,7 +438,7 @@ class DecisionLogger:
         """Return the most recent cycle's detected external cash flow."""
         return self._last_external_cash_flow
 
-    def augment_account_balance(self, account: Dict) -> Dict:
+    def augment_account_balance(self, account: Dict, initial_balance: float = None) -> Dict:
         """Augment raw account balance with deposit-adjusted metrics."""
         enriched = dict(account)
         current_equity = float(enriched.get("total_wallet_balance", 0.0))
@@ -448,5 +448,7 @@ class DecisionLogger:
         enriched["gross_total_balance"] = current_equity
         enriched["net_deposits"] = self._net_deposits
         enriched.setdefault("external_cash_flow", 0.0)
+        if initial_balance is not None:
+            enriched["initial_balance"] = float(initial_balance)
         return enriched
 

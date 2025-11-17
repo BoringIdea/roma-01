@@ -1360,5 +1360,10 @@ Partial close example:
 
     def get_account_snapshot(self) -> Dict:
         """Return the most recent account snapshot with adjustments."""
-        return dict(self.last_account_snapshot) if self.last_account_snapshot else {}
+        snapshot = dict(self.last_account_snapshot) if self.last_account_snapshot else {}
+        if snapshot:
+            # Add initial_balance if not present
+            if "initial_balance" not in snapshot:
+                snapshot["initial_balance"] = self.config.get("strategy", {}).get("initial_balance", 10000.0)
+        return snapshot
 

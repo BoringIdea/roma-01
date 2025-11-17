@@ -79,4 +79,3 @@ export default function HomePage() {
 
   return content;
 }
-

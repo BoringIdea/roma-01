@@ -68,20 +68,14 @@ export function PriceTicker() {
   }, [list]);
 
   return (
-    <div
-      className="w-full border-b h-[var(--ticker-h)]"
-      style={{
-        borderColor: "var(--panel-border)",
-        background: "var(--panel-bg)",
-      }}
-    >
+    <div className="w-full border-b border-black h-[var(--ticker-h)] bg-white text-black">
       <div ref={wrapRef} className="h-full overflow-hidden px-3">
         {loop ? (
           <div className="relative h-full">
             <div
               ref={trackRef}
-              className="ticker-track absolute left-0 top-0 flex h-full items-center gap-6 whitespace-nowrap text-xs leading-relaxed"
-              style={{ color: "var(--foreground)", animation: "ticker-scroll 22s linear infinite" }}
+              className="ticker-track absolute left-0 top-0 flex h-full items-center gap-6 whitespace-nowrap text-xs leading-relaxed font-bold"
+              style={{ animation: "ticker-scroll 22s linear infinite" }}
             >
               {renderItems(list)}
               {renderItems(list)}
@@ -90,8 +84,8 @@ export function PriceTicker() {
         ) : (
           <div
             ref={trackRef}
-            className="terminal-text flex h-full items-center gap-6 whitespace-nowrap text-xs leading-relaxed"
-            style={{ color: "var(--foreground)", overflowX: "auto" }}
+            className="terminal-text flex h-full items-center gap-6 whitespace-nowrap text-xs leading-relaxed font-bold"
+            style={{ overflowX: "auto" }}
           >
             {renderItems(list)}
           </div>
@@ -103,23 +97,24 @@ export function PriceTicker() {
 
 function renderItems(list: PriceData[]) {
   return list.map((p, i) => {
-    const coinIcon = getCoinIcon(p.symbol);
+    const icon = getCoinIcon(p.symbol);
     return (
       <span
         key={`${p.symbol}-${i}`}
-        className="inline-flex items-center gap-1.5 tabular-nums"
-        style={{ color: "var(--muted-text)" }}
+        className="inline-flex items-center gap-2 tabular-nums uppercase"
       >
-        {coinIcon && (
+        {icon ? (
           <img
-            src={coinIcon}
+            src={icon}
             alt={p.symbol}
-            className="w-4 h-4"
+            className="w-4 h-4 border border-black"
           />
+        ) : (
+          <span className="w-4 h-4 border border-black flex items-center justify-center text-[9px]">
+            {p.symbol[0]}
+          </span>
         )}
-        <b className="mr-1" style={{ color: "var(--foreground)" }}>
-          {p.symbol}
-        </b>
+        <b>{p.symbol}</b>
         <span>{fmtUSD(p.price)}</span>
       </span>
     );
@@ -142,4 +137,3 @@ if (typeof document !== "undefined") {
 }
 
 export default PriceTicker;
-

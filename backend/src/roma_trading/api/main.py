@@ -209,7 +209,8 @@ async def get_account(agent_id: str):
         if snapshot:
             return snapshot
         account = await agent.dex.get_account_balance()
-        return agent.logger_module.augment_account_balance(account)
+        initial_balance = agent.config.get("strategy", {}).get("initial_balance", 10000.0)
+        return agent.logger_module.augment_account_balance(account, initial_balance)
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:

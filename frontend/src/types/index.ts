@@ -40,6 +40,7 @@ export interface Account {
   gross_total_balance?: number;
   net_deposits?: number;
   external_cash_flow?: number;
+  initial_balance?: number;
 }
 
 export interface Position {
