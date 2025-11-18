@@ -206,8 +206,15 @@ class TechnicalAnalysisToolkit:
             lines.append(f"MACD：{data_3m['macd']['macd']:.4f}")
             lines.append(f"EMA20：${data_3m['ema20']:.4f}")
             
-            if data_3m['volume_ratio'] > 1.5:
-                lines.append(f"成交量：{data_3m['volume_ratio']:.1f} 倍均量 ⬆")
+            volume_ratio = data_3m.get('volume_ratio', 1.0)
+            if volume_ratio > 1.5:
+                lines.append(f"成交量：{volume_ratio:.2f} 倍均量 ⬆")
+            elif volume_ratio > 1.0:
+                lines.append(f"成交量：{volume_ratio:.2f} 倍均量 ↗")
+            elif volume_ratio < 0.5:
+                lines.append(f"成交量：{volume_ratio:.2f} 倍均量 ⬇")
+            else:
+                lines.append(f"成交量：{volume_ratio:.2f} 倍均量")
             
             if data_4h:
                 lines.append(f"\n4 小时趋势：{data_4h['price_change_4h']:+.2f}%")
@@ -216,22 +223,29 @@ class TechnicalAnalysisToolkit:
                     lines.append(f"EMA50：${data_4h['ema50']:.4f}")
         else:
             lines.append(f"Price: ${data_3m['current_price']:.4f}")
-        
-        if data_3m['price_change_1h'] != 0:
-            lines.append(f"1h: {data_3m['price_change_1h']:+.2f}%")
-        
-        lines.append(f"RSI(7): {data_3m['rsi']:.1f}")
-        lines.append(f"MACD: {data_3m['macd']['macd']:.4f}")
-        lines.append(f"EMA20: ${data_3m['ema20']:.4f}")
-        
-        if data_3m['volume_ratio'] > 1.5:
-            lines.append(f"Volume: {data_3m['volume_ratio']:.1f}x avg ⬆")
-        
-        if data_4h:
-            lines.append(f"\n4h Trend: {data_4h['price_change_4h']:+.2f}%")
-            lines.append(f"RSI(14): {data_4h['rsi']:.1f}")
-            if data_4h.get('ema50'):
-                lines.append(f"EMA50: ${data_4h['ema50']:.4f}")
+            
+            if data_3m['price_change_1h'] != 0:
+                lines.append(f"1h: {data_3m['price_change_1h']:+.2f}%")
+            
+            lines.append(f"RSI(7): {data_3m['rsi']:.1f}")
+            lines.append(f"MACD: {data_3m['macd']['macd']:.4f}")
+            lines.append(f"EMA20: ${data_3m['ema20']:.4f}")
+            
+            volume_ratio = data_3m.get('volume_ratio', 1.0)
+            if volume_ratio > 1.5:
+                lines.append(f"Volume: {volume_ratio:.2f}x avg ⬆")
+            elif volume_ratio > 1.0:
+                lines.append(f"Volume: {volume_ratio:.2f}x avg ↗")
+            elif volume_ratio < 0.5:
+                lines.append(f"Volume: {volume_ratio:.2f}x avg ⬇")
+            else:
+                lines.append(f"Volume: {volume_ratio:.2f}x avg")
+            
+            if data_4h:
+                lines.append(f"\n4h Trend: {data_4h['price_change_4h']:+.2f}%")
+                lines.append(f"RSI(14): {data_4h['rsi']:.1f}")
+                if data_4h.get('ema50'):
+                    lines.append(f"EMA50: ${data_4h['ema50']:.4f}")
         
         return "\n".join(lines)
 
