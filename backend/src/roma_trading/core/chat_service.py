@@ -11,6 +11,7 @@ from typing import Optional
 from loguru import logger
 from roma_trading.config import get_settings
 from roma_trading.agents import AgentManager
+from roma_trading.prompts import render_prompt
 
 
 class ChatResponse(dspy.Signature):
@@ -212,16 +213,7 @@ class ChatService:
         """Run chat module synchronously inside a worker thread."""
         lm = self._get_llm()
 
-        system_prompt = """You are a helpful AI assistant for the ROMA-01 cryptocurrency futures trading platform. 
-Your role is to help users understand:
-- Trading strategies and prompt suggestions
-- Risk management concepts
-- Platform features and capabilities
-- Trading best practices
-
-Provide clear, concise, and helpful responses. If asked about trading prompts, provide practical examples.
-If asked about risk management, explain the 4-layer risk management system.
-Always be helpful and professional."""
+        system_prompt = render_prompt("chat", language="en")
 
         with dspy.context(lm=lm):
             chat_module = dspy.ChainOfThought(ChatResponse)

@@ -30,6 +30,7 @@ from roma_trading.agents import AgentManager
 from roma_trading.core.analytics import TradingAnalytics
 from roma_trading.core.chat_service import initialize_chat_service, get_chat_service
 from roma_trading.api.routes import config as config_routes
+from roma_trading.prompts import initialize_prompt_repository
 
 
 # Global agent manager
@@ -43,6 +44,7 @@ async def lifespan(app: FastAPI):
     logger.info("Starting ROMA-01 Trading Platform...")
     
     try:
+        initialize_prompt_repository()
         await agent_manager.load_agents_from_config()
         asyncio.create_task(agent_manager.start_all())
         logger.info("All agents started successfully")
