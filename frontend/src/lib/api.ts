@@ -214,6 +214,29 @@ export const api = {
     const data = await response.json();
     return data;
   },
+
+  // Close a specific position (admin only)
+  closeAgentPosition: async (
+    agentId: string,
+    payload: { symbol: string; side: "long" | "short"; quantity?: number; quantity_pct?: number },
+  ): Promise<any> => {
+    return configFetcher(`/api/admin/agents/${agentId}/positions/close`, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+  },
+
+  // Close all positions across agents (admin only)
+  closeAllPositions: async (agentIds?: string[]): Promise<any> => {
+    const body =
+      agentIds && agentIds.length > 0
+        ? { agent_ids: agentIds }
+        : {};
+    return configFetcher("/api/admin/positions/close-all", {
+      method: "POST",
+      body: JSON.stringify(body),
+    });
+  },
 };
 
 export const configApi = {

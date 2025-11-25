@@ -70,6 +70,7 @@ import { AccountsSection } from "@/app/settings/components/AccountsSection";
 import { ModelsSection } from "@/app/settings/components/ModelsSection";
 import { AgentsSection } from "@/app/settings/components/AgentsSection";
 import { PromptsSection } from "@/app/settings/components/PromptsSection";
+import { PositionsSection } from "@/app/settings/components/PositionsSection";
 import { ModelTemplateModal } from "@/app/settings/components/ModelTemplateModal";
 import { AccountModal } from "@/app/settings/components/AccountModal";
 import { AgentModal } from "@/app/settings/components/AgentModal";
@@ -1102,6 +1103,7 @@ export default function SettingsPage() {
       { id: "accounts" as SettingsTab, label: language === "zh" ? "账户配置" : "Accounts" },
       { id: "models" as SettingsTab, label: language === "zh" ? "模型配置" : "Models" },
       { id: "agents" as SettingsTab, label: language === "zh" ? "智能体配置" : "Agents" },
+      { id: "positions" as SettingsTab, label: language === "zh" ? "实时持仓" : "Positions" },
       { id: "prompts" as SettingsTab, label: language === "zh" ? "智能体提示词" : "Prompts" },
     ],
     [language],
@@ -1233,6 +1235,10 @@ export default function SettingsPage() {
               onRemoveAgent={handleRemoveAgent}
               updateAgentAt={updateAgentAt}
             />
+          )}
+
+          {activeTab === "positions" && (
+            <PositionsSection />
           )}
 
           {activeTab === "prompts" && (

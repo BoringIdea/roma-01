@@ -365,8 +365,13 @@ function PositionsContent({
                 </thead>
                 <tbody style={{ color: "var(--foreground)" }}>
                   {positions.map((position, index) => {
-                    const pnlPct = (position.unrealized_profit / (position.entry_price * position.position_amt)) * 100;
-                    
+                    const rawDenominator = position.entry_price * (position.position_amt || 0);
+                    const pnlPct =
+                      rawDenominator === 0
+                        ? 0
+                        : (position.unrealized_profit / rawDenominator) * 100;
+                    const safePct = Number.isFinite(pnlPct) ? pnlPct : 0;
+
                     return (
                       <tr 
                         key={`${agent.id}-${position.symbol}-${index}`}
@@ -416,7 +421,8 @@ function PositionsContent({
                             {fmtUSD(position.unrealized_profit)}
                           </div>
                           <div className="text-[10px] tabular-nums">
-                            {pnlPct >= 0 ? "+" : ""}{pnlPct.toFixed(2)}%
+                            {safePct >= 0 ? "+" : ""}
+                            {safePct.toFixed(2)}%
                           </div>
                         </td>
                       </tr>

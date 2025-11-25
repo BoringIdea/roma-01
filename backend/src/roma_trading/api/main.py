@@ -16,7 +16,7 @@ Endpoints:
 """
 
 import asyncio
-from typing import Optional
+from typing import Any, Dict, List, Optional
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Query, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -359,6 +359,130 @@ class CustomPromptUpdate(BaseModel):
 class ChatMessage(BaseModel):
     """Chat message request model"""
     message: str
+
+
+class ClosePositionRequest(BaseModel):
+    """Manual close position payload."""
+    symbol: str
+    side: str
+    quantity: Optional[float] = None
+    quantity_pct: Optional[float] = None
+
+    @staticmethod
+    def _normalize_side(value: str) -> str:
+        normalized = value.lower()
+        if normalized not in {"long", "short"}:
+            raise ValueError("side must be 'long' or 'short'")
+        return normalized
+
+    @staticmethod
+    def _normalize_symbol(value: str) -> str:
+        return value.upper()
+
+    @staticmethod
+    def _normalize_pct(value: Optional[float]) -> Optional[float]:
+        if value is None:
+            return None
+        if value <= 0:
+            raise ValueError("quantity_pct must be positive")
+        return value
+
+    @staticmethod
+    def _normalize_quantity(value: Optional[float]) -> Optional[float]:
+        if value is None:
+            return None
+        if value <= 0:
+            raise ValueError("quantity must be positive")
+        return value
+
+    def normalized(self) -> "ClosePositionRequest":
+        return self.copy(
+            update={
+                "symbol": self._normalize_symbol(self.symbol),
+                "side": self._normalize_side(self.side),
+                "quantity": self._normalize_quantity(self.quantity),
+                "quantity_pct": self._normalize_pct(self.quantity_pct),
+            }
+        )
+
+
+class CloseAllPositionsRequest(BaseModel):
+    """Payload for closing all positions across agents."""
+    agent_ids: Optional[List[str]] = None
+
+
+@app.post("/api/admin/agents/{agent_id}/positions/close")
+async def admin_close_position(
+    agent_id: str,
+    payload: ClosePositionRequest,
+    _: dict = Depends(config_routes.get_current_admin_token),
+):
+    """Manually close a single position for an agent."""
+    normalized = payload.normalized()
+    try:
+        agent = agent_manager.get_agent(agent_id)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+    try:
+        result = await agent.close_position_manual(
+            symbol=normalized.symbol,
+            side=normalized.side,
+            quantity=normalized.quantity,
+            quantity_pct=normalized.quantity_pct,
+        )
+    except Exception as exc:
+        logger.error(f"Failed to close position {normalized.symbol} for {agent_id}: {exc}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(exc))
+
+    if not result:
+        raise HTTPException(status_code=404, detail="Position not found or already closed")
+
+    return {"status": "success", "data": result}
+
+
+@app.post("/api/admin/positions/close-all")
+async def admin_close_all_positions(
+    request: CloseAllPositionsRequest,
+    _: dict = Depends(config_routes.get_current_admin_token),
+):
+    """Close every open position across the provided agents (or all agents by default)."""
+    target_agent_ids = request.agent_ids or [agent["id"] for agent in agent_manager.get_all_agents()]
+    summary: List[Dict[str, Any]] = []
+
+    for agent_id in target_agent_ids:
+        try:
+            agent = agent_manager.get_agent(agent_id)
+        except ValueError:
+            summary.append({"agent_id": agent_id, "closed": [], "error": "Agent not found"})
+            continue
+
+        try:
+            positions = await agent.dex.get_positions()
+        except Exception as exc:
+            logger.error(f"Failed to fetch positions for {agent_id}: {exc}")
+            summary.append({"agent_id": agent_id, "closed": [], "error": str(exc)})
+            continue
+
+        closed_results: List[Dict[str, Any]] = []
+        for position in positions:
+            try:
+                result = await agent.close_position_manual(position["symbol"], position["side"])
+                if result:
+                    closed_results.append(result)
+            except Exception as exc:
+                logger.error(f"Failed to close {position['symbol']} for {agent_id}: {exc}")
+                closed_results.append(
+                    {
+                        "symbol": position["symbol"],
+                        "side": position["side"],
+                        "error": str(exc),
+                    }
+                )
+
+        summary.append({"agent_id": agent_id, "closed": closed_results})
+
+    return {"status": "success", "data": summary}
 
 
 @app.get("/api/agents/{agent_id}/prompts")

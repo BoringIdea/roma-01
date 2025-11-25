@@ -10,7 +10,7 @@ This agent orchestrates the complete trading cycle:
 """
 
 import asyncio
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 from datetime import datetime
 import dspy
 from loguru import logger
@@ -834,15 +834,19 @@ class TradingAgent:
         
         logger.info(f"✅ Opened SHORT {symbol}: {quantity:.6f} @ {leverage}x")
 
-    async def _execute_close(self, decision: Dict, side: str):
+    async def _execute_close(self, decision: Dict, side: str) -> Optional[Dict[str, Any]]:
         """Execute close position (supports partial close)."""
-        symbol = decision["symbol"]
+        symbol = str(decision["symbol"]).upper()
+        normalized_side = side.lower()
         price = await self.dex.get_market_price(symbol)
         positions = await self.dex.get_positions()
-        position = next((p for p in positions if p["symbol"] == symbol and p["side"] == side), None)
+        position = next(
+            (p for p in positions if p["symbol"].upper() == symbol and p["side"] == normalized_side),
+            None,
+        )
         if not position:
-            logger.error(f"No {side} position found for {symbol} to close")
-            return
+            logger.error(f"No {normalized_side} position found for {symbol} to close")
+            return None
 
         position_amt = position["position_amt"]
 
@@ -879,7 +883,7 @@ class TradingAgent:
             logger.warning(f"Invalid close quantity {close_quantity} for {symbol} {side}; skipping")
             return
         
-        result = await self.dex.close_position(symbol, side, quantity=close_quantity)
+        result = await self.dex.close_position(symbol, normalized_side, quantity=close_quantity)
         closed_quantity = result.get("closed_quantity") if isinstance(result, dict) else None
         if closed_quantity is None:
             closed_quantity = close_quantity if close_quantity is not None else position_amt
@@ -889,12 +893,45 @@ class TradingAgent:
             fully_closed = abs(closed_quantity - position_amt) < 1e-9
         
         # Record close
-        self.logger_module.record_close_position(symbol, side, price, closed_quantity)
+        self.logger_module.record_close_position(symbol, normalized_side, price, closed_quantity)
         
         # If partial close and automatic TP/SL is enabled, we can place new TP/SL orders(current version does not re-place)
         
         action_label = "partial close" if not fully_closed else "full close"
-        logger.info(f"✅ {action_label} {side.upper()} {symbol}: quantity={closed_quantity:.6f}")
+        logger.info(f"✅ {action_label} {normalized_side.upper()} {symbol}: quantity={closed_quantity:.6f}")
+
+        return {
+            "symbol": symbol,
+            "side": normalized_side,
+            "closed_quantity": closed_quantity,
+            "fully_closed": fully_closed,
+            "price": price,
+        }
+
+    async def close_position_manual(
+        self,
+        symbol: str,
+        side: str,
+        quantity: Optional[float] = None,
+        quantity_pct: Optional[float] = None,
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Close a position manually via admin controls.
+
+        Args:
+            symbol: Trading pair symbol, e.g., BTCUSDT
+            side: long/short
+            quantity: Optional absolute quantity to close
+            quantity_pct: Optional percentage (0-1 or 0-100) of position to close
+        """
+        decision: Dict[str, Any] = {"symbol": symbol}
+        if quantity is not None:
+            decision["close_quantity"] = quantity
+        if quantity_pct is not None:
+            decision["close_quantity_pct"] = quantity_pct
+
+        async with self.trading_lock:
+            return await self._execute_close(decision, side)
 
     async def _maybe_place_protective_orders(
         self,
