@@ -367,8 +367,8 @@ class TradingAgent:
                 market_context=market_context,
             )
 
-    def _build_system_prompt(self, language: Optional[str] = None, include_custom: bool = True) -> str:
-        """Build system prompt with trading rules and optional custom prompts."""
+    def _build_system_prompt(self, language: Optional[str] = None, include_custom: bool = True, include_insights: bool = True) -> str:
+        """Build system prompt with trading rules, custom prompts, and analysis insights."""
         lang = self._resolve_prompt_language(language)
         risk = self.config["strategy"]["risk_management"]
         
@@ -382,6 +382,7 @@ class TradingAgent:
             "stop_loss_pct": risk["stop_loss_pct"],
             "take_profit_pct": risk["take_profit_pct"],
             "CUSTOM_SECTIONS": "",
+            "ANALYSIS_INSIGHTS": "",
         }
 
         # Build custom sections if enabled
@@ -442,14 +443,123 @@ class TradingAgent:
                 custom_sections_text = "\n".join(custom_sections)
 
         prompt_context["CUSTOM_SECTIONS"] = custom_sections_text or ""
+        
+        # Add analysis insights if enabled
+        insights_text = ""
+        if include_insights:
+            insights_text = self._build_insights_section(lang)
+        prompt_context["ANALYSIS_INSIGHTS"] = insights_text or ""
 
         base_prompt = render_prompt(
             "system",
             lang,
             context=prompt_context,
         )
+        
+        # Append insights section if not empty (since prompts might not have placeholder)
+        if insights_text and "{ANALYSIS_INSIGHTS}" not in base_prompt:
+            base_prompt += "\n\n" + insights_text
 
         return base_prompt
+    
+    def _build_insights_section(self, language: str) -> str:
+        """Build insights section for system prompt from trade history analysis."""
+        try:
+            # Import here to avoid circular dependency
+            from roma_trading.api.main import trade_history_analyzer
+            
+            if not trade_history_analyzer:
+                return ""
+            
+            # Get insights for this agent
+            import asyncio
+            insights = []
+            try:
+                # Try to get from event loop
+                loop = asyncio.get_event_loop()
+                if loop.is_running():
+                    # If loop is running, we can't use asyncio.run, need to use a different approach
+                    # For now, return empty - insights will be added in next cycle
+                    return ""
+                else:
+                    insights = loop.run_until_complete(
+                        trade_history_analyzer.get_latest_insights(
+                            agent_id=self.agent_id,
+                            limit=5,
+                        )
+                    )
+            except (RuntimeError, AttributeError):
+                # No event loop, try to create one
+                try:
+                    insights = asyncio.run(
+                        trade_history_analyzer.get_latest_insights(
+                            agent_id=self.agent_id,
+                            limit=5,
+                        )
+                    )
+                except Exception:
+                    insights = []
+            
+            if not insights:
+                # Try global insights
+                try:
+                    loop = asyncio.get_event_loop()
+                    if loop.is_running():
+                        return ""
+                    insights = loop.run_until_complete(
+                        trade_history_analyzer.get_latest_insights(
+                            agent_id=None,
+                            limit=3,
+                        )
+                    )
+                except Exception:
+                    return ""
+            
+            if not insights:
+                return ""
+            
+            # Format insights for prompt
+            lang = language or "en"
+            lines = []
+            
+            if lang == "zh":
+                lines.append("\n**历史交易分析洞察（基于实际交易数据）:**")
+            else:
+                lines.append("\n**TRADE HISTORY ANALYSIS INSIGHTS (Based on Actual Trade Data):**")
+            
+            for idx, insight in enumerate(insights[:5], 1):  # Limit to top 5
+                category_map = {
+                    "entry_timing": ("入场时机" if lang == "zh" else "Entry Timing"),
+                    "exit_timing": ("出场时机" if lang == "zh" else "Exit Timing"),
+                    "position_sizing": ("仓位管理" if lang == "zh" else "Position Sizing"),
+                    "risk_management": ("风险管理" if lang == "zh" else "Risk Management"),
+                    "market_conditions": ("市场条件" if lang == "zh" else "Market Conditions"),
+                    "leverage_usage": ("杠杆使用" if lang == "zh" else "Leverage Usage"),
+                }
+                
+                category_name = category_map.get(insight.category.value, insight.category.value)
+                confidence = insight.confidence_score * 100
+                
+                lines.append(f"\n{idx}. [{category_name}] {insight.title} (置信度: {confidence:.0f}%)")
+                lines.append(f"   {insight.summary}")
+                
+                if insight.recommendations:
+                    if lang == "zh":
+                        lines.append("   建议:")
+                    else:
+                        lines.append("   Recommendations:")
+                    for rec in insight.recommendations[:3]:  # Limit to 3 recommendations
+                        lines.append(f"   - {rec}")
+            
+            if lang == "zh":
+                lines.append("\n注意：这些洞察基于你的历史交易数据，请在决策时参考但不要完全依赖。")
+            else:
+                lines.append("\nNote: These insights are based on your historical trade data. Consider them in your decisions but don't rely on them completely.")
+            
+            return "\n".join(lines)
+        except Exception as e:
+            logger.debug(f"Failed to build insights section: {e}")
+            return ""
 
     def _build_market_context(
         self,

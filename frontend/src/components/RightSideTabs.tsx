@@ -15,7 +15,7 @@ interface RightSideTabsProps {
   agents: Agent[];
 }
 
-type TabType = "positions" | "trades" | "decisions" | "prompts" | "chat";
+type TabType = "positions" | "trades" | "decisions" | "prompts" | "chat" | "analysis";
 
 export function RightSideTabs({ agents }: RightSideTabsProps) {
   const language = useLanguage((s) => s.language);
@@ -52,23 +52,26 @@ export function RightSideTabs({ agents }: RightSideTabsProps) {
       }}
     >
       {/* Tabs Header */}
-      <div className="mb-3 flex items-center gap-2 text-[11px]">
+      <div className="mb-3">
         <div
-          className="flex overflow-hidden rounded border"
-          style={{ borderColor: "var(--chip-border)" }}
+          className="flex rounded border"
+          style={{ 
+            borderColor: "var(--chip-border)",
+          }}
         >
-          {(["positions", "trades", "decisions", "prompts", "chat"] as TabType[]).map((tab) => (
+          {(["positions", "trades", "decisions", "prompts", "chat", "analysis"] as TabType[]).map((tab) => (
             <button
               key={tab}
-              className="px-3 py-1.5 chip-btn uppercase"
-              style={
-                activeTab === tab
+              className="flex-1 px-2 py-1.5 chip-btn uppercase text-center"
+              style={{
+                ...(activeTab === tab
                   ? {
                       background: "var(--btn-active-bg)",
                       color: "var(--btn-active-fg)",
                     }
-                  : { color: "var(--btn-inactive-fg)" }
-              }
+                  : { color: "var(--btn-inactive-fg)" }),
+                fontSize: language === "zh" ? "11px" : "9px",
+              }}
               onClick={() => setActiveTab(tab)}
             >
               {t[tab]}
@@ -77,8 +80,8 @@ export function RightSideTabs({ agents }: RightSideTabsProps) {
         </div>
       </div>
 
-      {/* Filters - Only show for non-prompts and non-chat tabs */}
-      {activeTab !== "prompts" && activeTab !== "chat" && (
+      {/* Filters - Only show for non-prompts, non-chat, and non-analysis tabs */}
+      {activeTab !== "prompts" && activeTab !== "chat" && activeTab !== "analysis" && (
         <div className="mb-3 space-y-2">
           {/* DEX Filter */}
           {dexTypes.length > 1 && (
@@ -205,6 +208,8 @@ export function RightSideTabs({ agents }: RightSideTabsProps) {
               <DecisionsContent agents={agents} filterAgent={filterAgent} filterDex={filterDex} filterAccount={filterAccount} />
             ) : activeTab === "prompts" ? (
               <PromptsContent agents={agents} filterAgent={filterAgent} />
+            ) : activeTab === "analysis" ? (
+              <AnalysisContent agents={agents} filterAgent={filterAgent} />
             ) : (
               <ChatContent />
             )}
@@ -1112,6 +1117,198 @@ function ChatContent() {
           {t.send || "Send"}
         </button>
       </div>
+    </div>
+  );
+}
+
+function AnalysisContent({
+  agents,
+  filterAgent,
+}: {
+  agents: Agent[];
+  filterAgent: string;
+}) {
+  const language = useLanguage((s) => s.language);
+  const t = getTranslation(language);
+  
+  // Get selected agent or first running agent
+  const selectedAgentId = filterAgent !== "all" 
+    ? filterAgent 
+    : agents.find(a => a.is_running)?.id;
+  
+  const { data: insights, isLoading, error, mutate } = useSWR(
+    selectedAgentId ? ["agent-insights", selectedAgentId] : null,
+    ([, agentId]) => api.getAgentInsights(agentId, 10, 0.7),
+    {
+      revalidateOnFocus: false,
+      refreshInterval: 30000, // Refresh every 30 seconds
+    }
+  );
+  
+  const { data: globalInsights } = useSWR(
+    "global-insights",
+    () => api.getGlobalInsights(5, 0.7),
+    {
+      revalidateOnFocus: false,
+      refreshInterval: 60000, // Refresh every minute
+    }
+  );
+  
+  if (!selectedAgentId) {
+    return (
+      <div className="flex items-center justify-center h-full" style={{ color: "var(--muted-text)" }}>
+        <div className="text-xs text-center">
+          <div className="mb-2">{language === "zh" ? "没有运行的智能体" : "No running agents"}</div>
+          <div className="text-[10px]">{language === "zh" ? "请先启动一个智能体" : "Please start an agent first"}</div>
+        </div>
+      </div>
+    );
+  }
+  
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-full" style={{ color: "var(--muted-text)" }}>
+        <div className="text-xs">{language === "zh" ? "加载中..." : "Loading..."}</div>
+      </div>
+    );
+  }
+  
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-full" style={{ color: "var(--error)" }}>
+        <div className="text-xs">{language === "zh" ? "加载失败" : "Failed to load"}</div>
+      </div>
+    );
+  }
+  
+  const agentInsights = insights?.data?.insights || [];
+  const sharedInsights = globalInsights?.data?.insights || [];
+  
+  const categoryNames: Record<string, { en: string; zh: string }> = {
+    entry_timing: { en: "Entry Timing", zh: "入场时机" },
+    exit_timing: { en: "Exit Timing", zh: "出场时机" },
+    position_sizing: { en: "Position Sizing", zh: "仓位管理" },
+    risk_management: { en: "Risk Management", zh: "风险管理" },
+    market_conditions: { en: "Market Conditions", zh: "市场条件" },
+    leverage_usage: { en: "Leverage Usage", zh: "杠杆使用" },
+  };
+  
+  return (
+    <div className="flex h-full flex-col gap-4 overflow-y-auto" style={{ maxHeight: "calc(100vh - 300px)" }}>
+      {/* Agent-specific insights */}
+      {agentInsights.length > 0 && (
+        <div>
+          <h3 className="text-xs font-semibold mb-2 uppercase tracking-wider" style={{ color: "var(--foreground)" }}>
+            {language === "zh" ? "智能体专属洞察" : "Agent-Specific Insights"}
+          </h3>
+          <div className="space-y-2">
+            {agentInsights.map((insight: any) => (
+              <div
+                key={insight.insight_id}
+                className="p-3 rounded border text-xs"
+                style={{
+                  background: "var(--panel-bg)",
+                  borderColor: "var(--panel-border)",
+                }}
+              >
+                <div className="flex items-center justify-between mb-1">
+                  <span className="font-semibold" style={{ color: "var(--foreground)" }}>
+                    {insight.title}
+                  </span>
+                  <span className="text-[10px]" style={{ color: "var(--muted-text)" }}>
+                    {categoryNames[insight.category]?.[language] || insight.category}
+                  </span>
+                </div>
+                <p className="text-[11px] mb-2" style={{ color: "var(--muted-text)" }}>
+                  {insight.summary}
+                </p>
+                {insight.recommendations && insight.recommendations.length > 0 && (
+                  <div className="mt-2">
+                    <div className="text-[10px] font-semibold mb-1" style={{ color: "var(--muted-text)" }}>
+                      {language === "zh" ? "建议:" : "Recommendations:"}
+                    </div>
+                    <ul className="list-disc list-inside space-y-1 text-[10px]" style={{ color: "var(--muted-text)" }}>
+                      {insight.recommendations.slice(0, 3).map((rec: string, idx: number) => (
+                        <li key={idx}>{rec}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                <div className="mt-2 flex items-center justify-between">
+                  <span className="text-[10px]" style={{ color: "var(--muted-text)" }}>
+                    {language === "zh" ? `置信度: ${(insight.confidence_score * 100).toFixed(0)}%` : `Confidence: ${(insight.confidence_score * 100).toFixed(0)}%`}
+                  </span>
+                  <span className="text-[10px]" style={{ color: "var(--muted-text)" }}>
+                    {new Date(insight.created_at).toLocaleDateString()}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+      
+      {/* Global/Shared insights */}
+      {sharedInsights.length > 0 && (
+        <div>
+          <h3 className="text-xs font-semibold mb-2 uppercase tracking-wider" style={{ color: "var(--foreground)" }}>
+            {language === "zh" ? "全局共享洞察" : "Global Shared Insights"}
+          </h3>
+          <div className="space-y-2">
+            {sharedInsights.map((insight: any) => (
+              <div
+                key={insight.insight_id}
+                className="p-3 rounded border text-xs"
+                style={{
+                  background: "var(--panel-bg)",
+                  borderColor: "var(--panel-border)",
+                }}
+              >
+                <div className="flex items-center justify-between mb-1">
+                  <span className="font-semibold" style={{ color: "var(--foreground)" }}>
+                    {insight.title}
+                  </span>
+                  <span className="text-[10px]" style={{ color: "var(--muted-text)" }}>
+                    {categoryNames[insight.category]?.[language] || insight.category}
+                  </span>
+                </div>
+                <p className="text-[11px] mb-2" style={{ color: "var(--muted-text)" }}>
+                  {insight.summary}
+                </p>
+                {insight.recommendations && insight.recommendations.length > 0 && (
+                  <div className="mt-2">
+                    <div className="text-[10px] font-semibold mb-1" style={{ color: "var(--muted-text)" }}>
+                      {language === "zh" ? "建议:" : "Recommendations:"}
+                    </div>
+                    <ul className="list-disc list-inside space-y-1 text-[10px]" style={{ color: "var(--muted-text)" }}>
+                      {insight.recommendations.slice(0, 3).map((rec: string, idx: number) => (
+                        <li key={idx}>{rec}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                <div className="mt-2 flex items-center justify-between">
+                  <span className="text-[10px]" style={{ color: "var(--muted-text)" }}>
+                    {language === "zh" ? `置信度: ${(insight.confidence_score * 100).toFixed(0)}%` : `Confidence: ${(insight.confidence_score * 100).toFixed(0)}%`}
+                  </span>
+                  <span className="text-[10px]" style={{ color: "var(--muted-text)" }}>
+                    {new Date(insight.created_at).toLocaleDateString()}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+      
+      {agentInsights.length === 0 && sharedInsights.length === 0 && (
+        <div className="flex items-center justify-center h-full" style={{ color: "var(--muted-text)" }}>
+          <div className="text-xs text-center">
+            <div className="mb-2">{language === "zh" ? "暂无分析洞察" : "No analysis insights yet"}</div>
+            <div className="text-[10px]">{language === "zh" ? "系统会自动分析交易历史并生成洞察" : "The system will automatically analyze trade history and generate insights"}</div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

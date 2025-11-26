@@ -83,6 +83,11 @@ html, body {
   background-size: 100% 2px, 3px 100%;
 }
 
+/* Hide scrollbar for tab container */
+.overflow-x-auto::-webkit-scrollbar {
+  display: none;
+}
+
 /* Reusable logo chip styles */
 .logo-chip {
   display: inline-flex;

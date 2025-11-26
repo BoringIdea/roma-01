@@ -121,11 +121,19 @@ export interface Trade {
 export type LogLevel = "DEBUG" | "INFO" | "WARNING" | "ERROR";
 export type PromptLanguage = "en" | "zh";
 
+export interface TradeHistoryAnalysisConfig {
+  enabled: boolean;
+  analysis_interval_hours: number;
+  analysis_period_days: number;
+  min_trades_required: number;
+}
+
 export interface SystemConfig {
   scan_interval_minutes: number;
   max_concurrent_agents: number;
   log_level: LogLevel;
   prompt_language: PromptLanguage;
+  trade_history_analysis?: TradeHistoryAnalysisConfig;
 }
 
 export interface AdminConfig {

@@ -157,11 +157,19 @@ class LoginResponse(BaseModel):
     expires_at: datetime
 
 
+class TradeHistoryAnalysisConfig(BaseModel):
+    enabled: bool = True
+    analysis_interval_hours: float = Field(default=12.0, ge=0.5, le=168.0)
+    analysis_period_days: int = Field(default=30, ge=7, le=365)
+    min_trades_required: int = Field(default=10, ge=5, le=1000)
+
+
 class SystemConfig(BaseModel):
     scan_interval_minutes: int = Field(..., ge=1, le=60)
     max_concurrent_agents: int = Field(..., ge=1, le=50)
     log_level: str
     prompt_language: str
+    trade_history_analysis: Optional[TradeHistoryAnalysisConfig] = None
 
     @validator("log_level")
     def _validate_log_level(cls, value: str) -> str:
@@ -412,12 +420,23 @@ def get_config(_: Dict[str, Any] = Depends(get_current_admin_token)) -> ConfigRe
 
 
 def _update_system_config(config: CommentedMap, system: SystemConfig) -> None:
-    config["system"] = CommentedMap({
+    system_dict = {
         "scan_interval_minutes": system.scan_interval_minutes,
         "max_concurrent_agents": system.max_concurrent_agents,
         "log_level": system.log_level,
         "prompt_language": system.prompt_language,
-    })
+    }
+    
+    # Add trade history analysis config if provided
+    if system.trade_history_analysis is not None:
+        system_dict["trade_history_analysis"] = {
+            "enabled": system.trade_history_analysis.enabled,
+            "analysis_interval_hours": system.trade_history_analysis.analysis_interval_hours,
+            "analysis_period_days": system.trade_history_analysis.analysis_period_days,
+            "min_trades_required": system.trade_history_analysis.min_trades_required,
+        }
+    
+    config["system"] = CommentedMap(system_dict)
 
 
 def _update_admin_config(config: CommentedMap, admin: AdminUpdate) -> None:
@@ -533,6 +552,21 @@ async def update_config(
             raise HTTPException(status_code=500, detail="Failed to reload agents. Check server logs.") from exc
     else:
         logger.warning("Agent manager not initialized; skipping agent reload")
+    
+    # Update analysis scheduler if system config was updated
+    if request.system and request.system.trade_history_analysis:
+        try:
+            from roma_trading.api.main import analysis_scheduler
+            if analysis_scheduler:
+                analysis_scheduler.update_config(
+                    enabled=request.system.trade_history_analysis.enabled,
+                    interval_hours=request.system.trade_history_analysis.analysis_interval_hours,
+                    analysis_period_days=request.system.trade_history_analysis.analysis_period_days,
+                    min_trades_required=request.system.trade_history_analysis.min_trades_required,
+                )
+                logger.info("Analysis scheduler config updated")
+        except Exception as exc:
+            logger.warning(f"Failed to update analysis scheduler config: {exc}")
 
     return get_config(token_payload)
 
