@@ -56,7 +56,22 @@ async def lifespan(app: FastAPI):
     global trade_history_analyzer, analysis_scheduler, large_trade_store, large_trade_streamer, dashboard_service
     
     try:
-        initialize_prompt_repository()
+        # Initialize prompt repository with explicit path for Docker compatibility
+        # Try multiple paths to support both Docker and local development
+        prompts_dir = None
+        for candidate_path in [Path("/app/prompts"), Path("prompts"), Path("../prompts")]:
+            if candidate_path.exists() and candidate_path.is_dir():
+                prompts_dir = candidate_path
+                logger.info(f"Found prompts directory at: {candidate_path}")
+                break
+        
+        if prompts_dir:
+            initialize_prompt_repository(str(prompts_dir))
+        else:
+            # Fallback to default behavior
+            logger.warning("Prompt directory not found in expected locations, using default path resolution")
+            initialize_prompt_repository()
+        
         await agent_manager.load_agents_from_config()
         asyncio.create_task(agent_manager.start_all())
         logger.info("All agents started successfully")
