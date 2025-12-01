@@ -300,6 +300,83 @@ export const api = {
   getAnalysisJob: async (jobId: string): Promise<any> => {
     return configFetcher(`/api/admin/analysis/jobs/${jobId}`);
   },
+
+  // Dashboard APIs
+  getLargeTrades: async (
+    dex?: string,
+    symbol?: string,
+    side?: string,
+    minAmount?: number,
+    timeWindow?: string,
+    limit?: number,
+    offset?: number
+  ): Promise<{
+    trades: Array<{
+      symbol: string;
+      side: "BUY" | "SELL";
+      price: number;
+      quantity: number;
+      quote_quantity: number;
+      timestamp: string;
+      is_buyer_maker: boolean;
+      dex: "aster" | "hyperliquid";
+      trade_id?: string;
+    }>;
+    stats: {
+      total_count: number;
+      total_volume: number;
+      buy_count: number;
+      sell_count: number;
+      buy_volume: number;
+      sell_volume: number;
+      symbol_distribution: Record<string, number>;
+    };
+    pagination: {
+      total: number;
+      limit: number;
+      offset: number;
+    };
+  }> => {
+    const params = new URLSearchParams();
+    if (dex) params.append("dex", dex);
+    if (symbol) params.append("symbol", symbol);
+    if (side) params.append("side", side);
+    if (minAmount) params.append("min_amount", minAmount.toString());
+    if (timeWindow) params.append("time_window", timeWindow);
+    if (limit) params.append("limit", limit.toString());
+    if (offset !== undefined) params.append("offset", offset.toString());
+    const query = params.toString() ? `?${params.toString()}` : "";
+    return fetcher(`/api/dashboard/large-trades${query}`);
+  },
+
+  getTokenRankings: async (
+    type: "funding-rate" | "volume" | "price-change" | "open-interest",
+    dex?: string,
+    sortOrder?: string,
+    limit?: number
+  ): Promise<Array<any>> => {
+    const params = new URLSearchParams();
+    if (dex) params.append("dex", dex);
+    if (sortOrder) params.append("sort_order", sortOrder);
+    if (limit) params.append("limit", limit.toString());
+    const query = params.toString() ? `?${params.toString()}` : "";
+    const data = await fetcher<{ data: any[] }>(`/api/dashboard/rankings/${type}${query}`);
+    return data.data;
+  },
+
+  getHyperliquidLeaderboard: async (
+    window: "day" | "week" | "month" | "allTime" = "month",
+    limit = 20,
+    offset = 0,
+    dex?: "aster" | "hyperliquid"
+  ): Promise<{ data: any[]; total: number; window: string }> => {
+    const params = new URLSearchParams();
+    params.append("window", window);
+    params.append("limit", limit.toString());
+    params.append("offset", offset.toString());
+    if (dex) params.append("dex", dex);
+    return fetcher(`/api/dashboard/leaderboard?${params.toString()}`);
+  },
 };
 
 export const configApi = {

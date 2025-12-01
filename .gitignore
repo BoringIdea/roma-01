@@ -38,6 +38,7 @@ logs/
 *.sqlite
 *.sqlite3
 *.db
+data/
 
 # ============================================
 # Node.js / Frontend
