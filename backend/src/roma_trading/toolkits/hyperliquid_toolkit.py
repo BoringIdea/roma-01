@@ -806,6 +806,62 @@ class HyperliquidToolkit(BaseDEXToolkit):
             logger.error(f"Failed to close position for {symbol}: {e}", exc_info=True)
             raise
     
+    async def get_meta_and_asset_ctxs(self) -> tuple:
+        """
+        Get metadata and asset contexts (includes funding, volume, open interest).
+        
+        Returns:
+            Tuple of (meta, asset_ctxs) where:
+            - meta: Dict with universe information
+            - asset_ctxs: List of asset context dicts with funding, volume, etc.
+        """
+        result = self.info.meta_and_asset_ctxs()
+        # meta_and_asset_ctxs returns a list: [meta_dict, ctxs_list]
+        # Convert to tuple for consistency
+        if isinstance(result, list) and len(result) >= 2:
+            return (result[0], result[1])
+        return result
+
+    async def get_funding_history(
+        self,
+        coin: str,
+        start_time: int,
+        end_time: Optional[int] = None
+    ) -> List[Dict]:
+        """
+        Get funding rate history for a coin.
+        
+        Args:
+            coin: Coin name (e.g., "BTC")
+            start_time: Start timestamp in milliseconds
+            end_time: End timestamp in milliseconds (optional)
+            
+        Returns:
+            List of funding rate history records
+        """
+        return self.info.funding_history(coin, start_time, end_time)
+
+    async def get_l2_snapshot(self, coin: str) -> Dict:
+        """
+        Get L2 order book snapshot.
+        
+        Args:
+            coin: Coin name (e.g., "BTC")
+            
+        Returns:
+            Order book snapshot data
+        """
+        return self.info.l2_snapshot(coin)
+
+    async def get_all_mids(self) -> Dict[str, str]:
+        """
+        Get all mid prices for actively traded coins.
+        
+        Returns:
+            Dict mapping coin names to mid prices
+        """
+        return self.info.all_mids()
+
     async def close(self):
         """Close HTTP client and cleanup."""
         # Hyperliquid SDK doesn't require explicit cleanup
