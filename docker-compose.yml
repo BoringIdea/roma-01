@@ -17,6 +17,7 @@ services:
     volumes:
       - ./backend/config:/app/config
       - ./backend/logs:/app/logs
+      - ./backend/prompts:/app/prompts
       - backend-data:/app/data
     restart: unless-stopped
     healthcheck:

@@ -34,6 +34,7 @@ from roma_trading.core.trade_history_analyzer import TradeHistoryAnalyzer
 from roma_trading.core.analysis_scheduler import AnalysisScheduler
 from roma_trading.api.routes import config as config_routes
 from roma_trading.prompts import initialize_prompt_repository
+from roma_trading.services.large_trade_streamer import LargeTradeStore, LargeTradeStreamer
 
 
 # Global agent manager
@@ -42,6 +43,8 @@ agent_manager = AgentManager()
 # Global trade history analyzer and scheduler
 trade_history_analyzer: Optional[TradeHistoryAnalyzer] = None
 analysis_scheduler: Optional[AnalysisScheduler] = None
+large_trade_store: Optional[LargeTradeStore] = None
+large_trade_streamer: Optional[LargeTradeStreamer] = None
 
 
 @asynccontextmanager
@@ -50,16 +53,47 @@ async def lifespan(app: FastAPI):
     # Startup
     logger.info("Starting ROMA-01 Trading Platform...")
     
-    global trade_history_analyzer, analysis_scheduler
+    global trade_history_analyzer, analysis_scheduler, large_trade_store, large_trade_streamer, dashboard_service
     
     try:
-        initialize_prompt_repository()
+        # Initialize prompt repository with explicit path for Docker compatibility
+        # Try multiple paths to support both Docker and local development
+        prompts_dir = None
+        for candidate_path in [Path("/app/prompts"), Path("prompts"), Path("../prompts")]:
+            if candidate_path.exists() and candidate_path.is_dir():
+                prompts_dir = candidate_path
+                logger.info(f"Found prompts directory at: {candidate_path}")
+                break
+        
+        if prompts_dir:
+            initialize_prompt_repository(str(prompts_dir))
+        else:
+            # Fallback to default behavior
+            logger.warning("Prompt directory not found in expected locations, using default path resolution")
+            initialize_prompt_repository()
+        
         await agent_manager.load_agents_from_config()
         asyncio.create_task(agent_manager.start_all())
         logger.info("All agents started successfully")
         
         # Initialize chat service
         initialize_chat_service(agent_manager)
+        
+        # Initialize large trade store + streamer (shared by dashboard service)
+        large_trade_store = LargeTradeStore(Path("data/large_trades.jsonl"), max_records=4000)
+        large_trade_streamer = LargeTradeStreamer(store=large_trade_store)
+        dashboard_service.large_trade_store = large_trade_store
+
+        # Register dashboard listener for large trade appends so that
+        # dashboard snapshots can be refreshed efficiently.
+        async def _on_large_trade_appended(record) -> None:
+            await dashboard_service.notify_large_trade_appended(record)
+
+        large_trade_store.register_append_subscriber(_on_large_trade_appended)
+
+        # Start background snapshot updater for dashboard
+        await dashboard_service.start_background_updater(interval_seconds=180)
+        await large_trade_streamer.start()
         
         # Initialize trade history analysis system
         try:
@@ -103,6 +137,9 @@ async def lifespan(app: FastAPI):
     # Shutdown
     logger.info("Shutting down...")
     
+    if large_trade_streamer:
+        await large_trade_streamer.stop()
+    
     # Stop analysis scheduler
     if analysis_scheduler:
         await analysis_scheduler.stop()
@@ -131,6 +168,27 @@ app.add_middleware(
 # Register routers
 app.include_router(config_routes.router)
 config_routes.set_agent_manager(agent_manager)
+
+# Register dashboard router
+from roma_trading.api.routes import dashboard as dashboard_routes
+from roma_trading.services import (
+    DashboardService,
+    LargeTradeStore,
+    LargeTradeStreamer,
+    HyperliquidLeaderboardService,
+    AsterLeaderboardService,
+)
+
+# Initialize dashboard services
+dashboard_service = DashboardService(agent_manager)
+hyperliquid_leaderboard_service = HyperliquidLeaderboardService()
+aster_leaderboard_service = AsterLeaderboardService()
+dashboard_routes.set_dashboard_service(dashboard_service)
+dashboard_routes.set_leaderboard_service(
+    hyperliquid_service=hyperliquid_leaderboard_service,
+    aster_service=aster_leaderboard_service,
+)
+app.include_router(dashboard_routes.router)
 
 
 @app.get("/")

@@ -14,7 +14,9 @@ export function Header() {
   const t = getTranslation(language);
   
   const [agentsOpen, setAgentsOpen] = useState(false);
+  const [dashboardOpen, setDashboardOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const dashboardDropdownRef = useRef<HTMLDivElement>(null);
 
   // Fetch agents
   const { data: agents } = useSWR("/agents", api.getAgents, {
@@ -23,17 +25,20 @@ export function Header() {
 
   // Close dropdown when clicking outside
   useEffect(() => {
-    if (!agentsOpen) return;
-    
     const handleClickOutside = (e: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+      if (agentsOpen && dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
         setAgentsOpen(false);
+      }
+      if (dashboardOpen && dashboardDropdownRef.current && !dashboardDropdownRef.current.contains(e.target as Node)) {
+        setDashboardOpen(false);
       }
     };
 
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [agentsOpen]);
+    if (agentsOpen || dashboardOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+      return () => document.removeEventListener("mousedown", handleClickOutside);
+    }
+  }, [agentsOpen, dashboardOpen]);
 
   return (
     <header
@@ -69,9 +74,89 @@ export function Header() {
               <Link href="/" className="font-semibold hover:opacity-70 transition-opacity uppercase tracking-wider" style={{ color: "inherit" }}>
                 {t.header.live}
               </Link>
+              
               <Link href="/leaderboard" className="font-semibold hover:opacity-70 transition-opacity uppercase tracking-wider" style={{ color: "inherit" }}>
                 {t.header.leaderboard}
               </Link>
+              
+              {/* Dashboard Dropdown */}
+              <div ref={dashboardDropdownRef} className="relative">
+                <button
+                  onClick={() => setDashboardOpen(!dashboardOpen)}
+                  className="font-semibold hover:opacity-70 transition-opacity flex items-center gap-1 uppercase tracking-wider"
+                  style={{ color: "inherit" }}
+                >
+                  {language === "zh" ? "看板" : "Dashboard"}
+                  <svg 
+                    className={`w-3 h-3 transition-transform ${dashboardOpen ? "rotate-180" : ""}`}
+                    fill="none" 
+                    stroke="currentColor" 
+                    viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+
+                {/* Dropdown Menu */}
+                {dashboardOpen && (
+                  <div
+                    className="absolute top-full mt-2 min-w-[200px] rounded-md border shadow-lg"
+                    style={{
+                      background: "var(--panel-bg)",
+                      borderColor: "var(--panel-border)",
+                      left: "50%",
+                      transform: "translateX(-50%)",
+                    }}
+                  >
+                    <div className="py-1">
+                      <Link
+                        href="/dashboard?dex=aster"
+                        onClick={() => setDashboardOpen(false)}
+                        className="block px-3 py-2 hover:bg-opacity-50 transition-colors"
+                        style={{
+                          color: "var(--foreground)",
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.background = "rgba(59, 130, 246, 0.15)";
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.background = "transparent";
+                        }}
+                      >
+                        <div className="flex items-center gap-2">
+                          <div 
+                            className="w-2 h-2 rounded-full"
+                            style={{ background: "#3b82f6" }}
+                          />
+                          <span className="text-xs font-medium">Aster</span>
+                        </div>
+                      </Link>
+                      <Link
+                        href="/dashboard?dex=hyperliquid"
+                        onClick={() => setDashboardOpen(false)}
+                        className="block px-3 py-2 hover:bg-opacity-50 transition-colors"
+                        style={{
+                          color: "var(--foreground)",
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.background = "rgba(139, 92, 246, 0.15)";
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.background = "transparent";
+                        }}
+                      >
+                        <div className="flex items-center gap-2">
+                          <div 
+                            className="w-2 h-2 rounded-full"
+                            style={{ background: "#8b5cf6" }}
+                          />
+                          <span className="text-xs font-medium">Hyperliquid</span>
+                        </div>
+                      </Link>
+                    </div>
+                  </div>
+                )}
+              </div>
           
           {/* Agents Dropdown */}
           <div ref={dropdownRef} className="relative">

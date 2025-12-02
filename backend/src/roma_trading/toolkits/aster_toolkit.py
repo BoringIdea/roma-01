@@ -616,6 +616,140 @@ class AsterToolkit(BaseDEXToolkit):
             "status": result.get("status"),
         }
 
+    async def get_agg_trades(
+        self,
+        symbol: str,
+        start_time: Optional[int] = None,
+        end_time: Optional[int] = None,
+        limit: int = 500
+    ) -> List[Dict]:
+        """
+        Get aggregated trades from Aster DEX.
+        
+        Args:
+            symbol: Trading pair (e.g., "BTCUSDT")
+            start_time: Start timestamp in milliseconds
+            end_time: End timestamp in milliseconds
+            limit: Max number of trades (max 1000)
+            
+        Returns:
+            List of aggregated trade records
+        """
+        params = {
+            "symbol": symbol,
+            "limit": min(limit, 1000)
+        }
+        
+        if start_time:
+            params["startTime"] = start_time
+        if end_time:
+            params["endTime"] = end_time
+        
+        response = await self.client.get(
+            f"{self.BASE_URL}/fapi/v3/aggTrades",
+            params=params
+        )
+        response.raise_for_status()
+        return response.json()
+
+    async def get_ticker_24hr(self, symbol: Optional[str] = None) -> List[Dict]:
+        """
+        Get 24hr ticker statistics.
+        
+        Args:
+            symbol: Trading pair (optional, if None returns all symbols)
+            
+        Returns:
+            List of ticker data
+        """
+        params = {}
+        if symbol:
+            params["symbol"] = symbol
+        
+        response = await self.client.get(
+            f"{self.BASE_URL}/fapi/v3/ticker/24hr",
+            params=params
+        )
+        response.raise_for_status()
+        data = response.json()
+        return data if isinstance(data, list) else [data]
+
+    async def get_premium_index(self, symbol: Optional[str] = None) -> List[Dict]:
+        """
+        Get premium index and funding rate.
+        
+        Args:
+            symbol: Trading pair (optional, if None returns all symbols)
+            
+        Returns:
+            List of premium index data
+        """
+        params = {}
+        if symbol:
+            params["symbol"] = symbol
+        
+        response = await self.client.get(
+            f"{self.BASE_URL}/fapi/v3/premiumIndex",
+            params=params
+        )
+        response.raise_for_status()
+        data = response.json()
+        return data if isinstance(data, list) else [data]
+
+    async def get_funding_rate_history(
+        self,
+        symbol: str,
+        start_time: Optional[int] = None,
+        end_time: Optional[int] = None,
+        limit: int = 100
+    ) -> List[Dict]:
+        """
+        Get funding rate history.
+        
+        Args:
+            symbol: Trading pair
+            start_time: Start timestamp in milliseconds
+            end_time: End timestamp in milliseconds
+            limit: Max number of records (max 1000)
+            
+        Returns:
+            List of funding rate history records
+        """
+        params = {
+            "symbol": symbol,
+            "limit": min(limit, 1000)
+        }
+        
+        if start_time:
+            params["startTime"] = start_time
+        if end_time:
+            params["endTime"] = end_time
+        
+        response = await self.client.get(
+            f"{self.BASE_URL}/fapi/v3/fundingRate",
+            params=params
+        )
+        response.raise_for_status()
+        return response.json()
+
+    async def get_depth(self, symbol: str, limit: int = 100) -> Dict:
+        """
+        Get order book depth.
+        
+        Args:
+            symbol: Trading pair
+            limit: Depth limit (5, 10, 20, 50, 100, 500, 1000)
+            
+        Returns:
+            Order book depth data
+        """
+        response = await self.client.get(
+            f"{self.BASE_URL}/fapi/v3/depth",
+            params={"symbol": symbol, "limit": limit}
+        )
+        response.raise_for_status()
+        return response.json()
+
     async def get_user_trades(
         self,
         symbol: Optional[str] = None,

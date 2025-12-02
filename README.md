@@ -5,7 +5,7 @@
 [![Next.js](https://img.shields.io/badge/Next.js-14-black)](https://nextjs.org/)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 
-A competitive **AI-powered cryptocurrency futures trading** platform featuring a **NOF1-inspired interface** ([nof1.ai](https://nof1.ai/)) for showcasing multiple LLM models side-by-side, powered by the **ROMA (Recursive Open Meta-Agents)** framework.
+An **AI-powered cryptocurrency futures trading** platform for running multiple LLM-based agents in live markets, with a full monitoring dashboard, leaderboard, and AI assistant, powered by the **ROMA (Recursive Open Meta-Agents)** framework.
 
 English | [简体中文](README.zh-CN.md)
 
@@ -13,17 +13,17 @@ English | [简体中文](README.zh-CN.md)
 
 ## 🎯 About This Project
 
-### Frontend: NOF1-Style Interface
+### Frontend: Trading Dashboard & Control Center
 
-This platform features a **NOF1-inspired frontend interface** ([nof1.ai](https://nof1.ai/)) that allows you to:
-- 🏆 **Competitive Leaderboard**: Compare multiple AI trading models side-by-side in real-time
-- 📊 **Performance Visualization**: Track account values, P/L, and trading metrics across all models
-- 🎨 **Agent Showcase**: Display multiple trading agents, each combining any DEX account with any LLM model
+The frontend provides a **trading operations dashboard** designed for live monitoring and control:
+- 🏆 **Leaderboard**: Compare multiple AI trading agents side-by-side in real-time
+- 📊 **Performance Visualization**: Track account values, P/L, and trading metrics across all agents
+- 🎨 **Agent Overview**: Inspect each trading agent that combines any DEX account with any LLM model
 - 📈 **Live Trading Dashboard**: Monitor positions, completed trades, and AI decision-making processes
-- 📝 **Custom Prompts**: User-defined trading strategies
-- 💬 **AI Chat Assistant**: Interactive chat interface for getting trading advice, prompt suggestions, and platform guidance
+- 📝 **Custom Prompts**: Configure user-defined trading strategies per agent
+- 💬 **AI Chat Assistant & Token Analysis**: Interactive chat interface for trading advice, prompt suggestions, token analysis, and platform guidance
 
-The interface provides a transparent view into how different AI models perform in live trading scenarios, similar to how NOF1 demonstrates model capabilities through competitive evaluation.
+The interface focuses on **operational transparency**, making it easy to understand what each agent is doing, why, and how it impacts overall portfolio risk and performance.
 
 ### Backend: ROMA Framework
 
@@ -409,7 +409,7 @@ The platform is designed to integrate multiple information sources for comprehen
 
 ## 🖥️ User Interface
 
-Inspired by [NOF1.ai](https://nof1.ai/), this platform provides a competitive AI model showcase interface:
+The ROMA-01 interface is built for **live trading operations, monitoring, and analysis**:
 
 ### Live Trading Dashboard
 - **Multi-Agent Overview**: Monitor up to 6 different LLM models trading simultaneously
@@ -418,7 +418,7 @@ Inspired by [NOF1.ai](https://nof1.ai/), this platform provides a competitive AI
 - **Interactive Charts**: Visualize equity curves and performance comparisons across models
 
 ### Leaderboard View
-- **Competitive Rankings**: Compare model performance with win rates, profit factors, and Sharpe ratios
+- **Rankings**: Compare model performance with win rates, profit factors, and Sharpe ratios
 - **Account Value Bars**: Visual representation of each model's trading account balance
 - **Advanced Analytics**: Detailed metrics including completed trades, average hold time, and risk metrics
 - **Model Status Indicators**: See which models are running and their current cycle counts
@@ -432,11 +432,12 @@ Inspired by [NOF1.ai](https://nof1.ai/), this platform provides a competitive AI
 ### AI Chat Assistant
 - **Interactive Chat Interface**: Chat directly with AI assistant from the right-side tabs
 - **Trading Guidance**: Ask questions about trading strategies, prompt suggestions, and risk management
+- **Token Analysis**: Request token-focused analysis (e.g., "analyze BTC", "what about ETH?")
 - **Platform Help**: Get assistance understanding platform features and capabilities
 - **Real-time Responses**: Powered by the same LLM models used for trading decisions
 - **Bilingual Support**: Full i18n support for English and Chinese
 
-The interface design emphasizes transparency and comparison, allowing users to see how different AI models perform in identical market conditions.
+Overall, the UI emphasizes **clarity, transparency, and control**, helping you understand both performance outcomes and the reasoning behind AI-driven trading decisions.
 
 _Screenshots coming soon_
 
@@ -584,7 +585,7 @@ MIT License - see the [LICENSE](LICENSE) file for details.
 ## 🙏 Acknowledgments
 
 - **ROMA Framework**: For the hierarchical multi-agent architecture - see [ROMA documentation](../ROMA/README.md)
-- **NOF1.ai**: For inspiration on competitive AI model showcase interface design
+- **NOF1.ai**: For early design inspiration on multi-model comparison interfaces
 - **DSPy**: For structured AI prompting and agent orchestration
 - **Aster Finance**: For the DEX integration and Web3 trading infrastructure
 - **DeepSeek**: For fast and affordable LLM API
