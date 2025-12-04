@@ -218,6 +218,17 @@ Every 3-5 minutes:
 - [Deployment Guide](docs/DEPLOYMENT.md) - Production deployment  
 - [Troubleshooting](docs/TROUBLESHOOTING.md) - Common issues and solutions
 
+#### File → DB Data Migration (SQLite)
+
+To migrate existing file-based data (`logs/` and `data/large_trades.jsonl`) into the SQLite database:
+
+```bash
+cd backend
+python scripts/migrate_to_database.py
+```
+
+The script will initialize the DB (if needed) and migrate trades, equity history, decision logs, analysis data, and large trades into `backend/data/roma_trading.db`.
+
 📖 **Full documentation index**: [docs/README.md](docs/README.md)
 
 ---

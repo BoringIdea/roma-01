@@ -1,3 +1,10 @@
 # Environment Variables
 .env
 .env.local
+
+# Database files
+*.db
+*.db-shm
+*.db-wal
+data/
+roma_trading.db
