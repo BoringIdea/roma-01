@@ -116,10 +116,16 @@ cd backend
 cp .env.example .env
 nano .env  # 添加您的密钥
 
-# 4. 启动后端
+# 4.（可选）自定义交易配置
+# 第一次启动时，如果找不到 backend/config/trading_config.yaml，
+# 启动脚本会自动从 backend/config/trading_config.yaml.example
+# 生成一份默认配置文件。你可以在生成后编辑：
+#   backend/config/trading_config.yaml
+
+# 5. 启动后端
 ./start.sh
 
-# 5. 前端设置（新终端）
+# 6. 前端设置（新终端）
 cd ../frontend
 npm install
 npm run dev
@@ -563,6 +569,21 @@ MIT 许可证 - 详见 [LICENSE](LICENSE) 文件。
 - 🐛 问题：[GitHub Issues](https://github.com/lukema95/roma-01/issues)
 - 💬 讨论：[GitHub Discussions](https://github.com/lukema95/roma-01/discussions)
 - 📧 邮箱：lukema95@gmail.com
+
+### 文件数据迁移到 SQLite 数据库
+
+如果你之前已经在本地运行过系统并产生了 `logs/` 目录下的决策/交易数据，以及 `data/large_trades.jsonl` 等文件，可以通过下述脚本一次性迁移到 SQLite 数据库：
+
+```bash
+cd backend
+python scripts/migrate_to_database.py
+```
+
+脚本会：
+- 自动初始化数据库（默认路径：`backend/data/roma_trading.db`）
+- 从 `logs/decisions/` 中迁移：交易历史、权益历史、决策日志
+- 从 `logs/analysis/` 中迁移：分析洞察、分析快照、分析任务
+- 从 `data/large_trades.jsonl` 中迁移：大额交易记录
 
 ---
 

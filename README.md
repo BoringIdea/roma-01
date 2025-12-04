@@ -116,10 +116,16 @@ cd backend
 cp .env.example .env
 nano .env  # Add your keys
 
-# 4. Start backend
+# 4. (Optional) Customize trading config
+# On first start, if backend/config/trading_config.yaml is missing,
+# the backend start script will automatically create it from:
+#   backend/config/trading_config.yaml.example
+# You can edit backend/config/trading_config.yaml afterwards to customize accounts and agents.
+
+# 5. Start backend
 ./start.sh
 
-# 5. Frontend setup (new terminal)
+# 6. Frontend setup (new terminal)
 cd ../frontend
 npm install
 npm run dev
@@ -217,6 +223,17 @@ Every 3-5 minutes:
 ### Operations
 - [Deployment Guide](docs/DEPLOYMENT.md) - Production deployment  
 - [Troubleshooting](docs/TROUBLESHOOTING.md) - Common issues and solutions
+
+#### File → DB Data Migration (SQLite)
+
+To migrate existing file-based data (`logs/` and `data/large_trades.jsonl`) into the SQLite database:
+
+```bash
+cd backend
+python scripts/migrate_to_database.py
+```
+
+The script will initialize the DB (if needed) and migrate trades, equity history, decision logs, analysis data, and large trades into `backend/data/roma_trading.db`.
 
 📖 **Full documentation index**: [docs/README.md](docs/README.md)
 

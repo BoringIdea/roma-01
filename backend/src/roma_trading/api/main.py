@@ -35,6 +35,7 @@ from roma_trading.core.analysis_scheduler import AnalysisScheduler
 from roma_trading.api.routes import config as config_routes
 from roma_trading.prompts import initialize_prompt_repository
 from roma_trading.services.large_trade_streamer import LargeTradeStore, LargeTradeStreamer
+from roma_trading.database.base import init_db, close_db
 
 
 # Global agent manager
@@ -56,6 +57,10 @@ async def lifespan(app: FastAPI):
     global trade_history_analyzer, analysis_scheduler, large_trade_store, large_trade_streamer, dashboard_service
     
     try:
+        # Initialize database
+        await init_db()
+        logger.info("Database initialized successfully")
+        
         # Initialize prompt repository with explicit path for Docker compatibility
         # Try multiple paths to support both Docker and local development
         prompts_dir = None
@@ -80,7 +85,15 @@ async def lifespan(app: FastAPI):
         initialize_chat_service(agent_manager)
         
         # Initialize large trade store + streamer (shared by dashboard service)
-        large_trade_store = LargeTradeStore(Path("data/large_trades.jsonl"), max_records=4000)
+        # Storage factory will automatically choose database or file based on config
+        from roma_trading.storage import get_storage_factory
+        storage_factory = get_storage_factory()
+        
+        large_trade_store = LargeTradeStore(
+            file_path=Path("data/large_trades.jsonl"),
+            max_records=4000,
+            storage_factory=storage_factory,
+        )
         large_trade_streamer = LargeTradeStreamer(store=large_trade_store)
         dashboard_service.large_trade_store = large_trade_store
 
@@ -145,6 +158,9 @@ async def lifespan(app: FastAPI):
         await analysis_scheduler.stop()
     
     await agent_manager.stop_all()
+    
+    # Close database connections
+    await close_db()
 
 
 # Create FastAPI app

@@ -12,12 +12,17 @@ Python backend for ROMA Trading Platform powered by FastAPI, DSPy, and multiple 
 cp .env.example .env
 nano .env  # Add your API keys and DEX account credentials
 
-# Configure trading agents
-cd config
-# Edit trading_config.yaml to set up your accounts, models, and agents
-# See README_CONFIG.md for detailed instructions
+# (Optional) Customize trading agents
+# By default, on the first run of start.sh, if config/trading_config.yaml
+# does not exist, it will be automatically created from:
+#   config/trading_config.yaml.example
+# To customize trading accounts and strategies, edit:
+#
+#   backend/config/trading_config.yaml
+#
+# For details, see backend/config/README_CONFIG.md.
 
-# Start server
+# Start server (this will auto-create config/trading_config.yaml from the example if missing)
 ./start.sh
 ```
 

@@ -1108,46 +1108,95 @@ class TradeHistoryAnalyzer:
         agent_manager: Any,
         storage_dir: str = "logs/analysis",
         llm_provider: Any = None,
+        storage_factory=None,
     ):
+        """
+        Initialize trade history analyzer.
+        
+        Args:
+            agent_manager: Agent manager instance
+            storage_dir: Directory for file storage (legacy, used if storage_factory uses file storage)
+            llm_provider: Optional LLM provider
+            storage_factory: Optional storage factory (uses global if not provided)
+        """
         self.agent_manager = agent_manager
         self.storage_dir = Path(storage_dir)
-        self.storage_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Get storage instances from factory
+        if storage_factory is None:
+            from roma_trading.storage import get_storage_factory
+            storage_factory = get_storage_factory()
+        
+        self.storage_factory = storage_factory
+        self.insight_storage = storage_factory.create_analysis_insight_storage()
+        self.snapshot_storage = storage_factory.create_analysis_snapshot_storage()
+        self.job_storage = storage_factory.create_analysis_job_storage()
         
         self.collector = TradeHistoryCollector()
-        self.snapshot_manager = SnapshotManager(storage_dir=str(self.storage_dir / "snapshots"))
-        self.insight_repo = InsightRepository(storage_dir=str(self.storage_dir / "insights"))
         self.analysis_engine = AnalysisEngine(agent_manager=agent_manager, llm_provider=llm_provider)
         self._system_prompt_language: Optional[str] = None
         
-        # Job tracking
-        self.jobs_file = self.storage_dir / "jobs.json"
+        # Job tracking (in-memory cache)
         self.jobs: Dict[str, AnalysisJob] = {}
         self._load_jobs()
     
     def _load_jobs(self) -> None:
-        """Load analysis jobs from disk."""
-        if self.jobs_file.exists():
+        """Load analysis jobs from storage."""
+        try:
+            import asyncio
             try:
-                with open(self.jobs_file, "r") as f:
-                    jobs_data = json.load(f)
-                    for job_data in jobs_data:
-                        # Reconstruct datetime fields
-                        job_data["scheduled_at"] = datetime.fromisoformat(job_data["scheduled_at"])
-                        if job_data.get("started_at"):
-                            job_data["started_at"] = datetime.fromisoformat(job_data["started_at"])
-                        if job_data.get("completed_at"):
-                            job_data["completed_at"] = datetime.fromisoformat(job_data["completed_at"])
-                        
-                        job = AnalysisJob(**job_data)
-                        self.jobs[job.job_id] = job
-            except Exception as e:
-                logger.error(f"Failed to load analysis jobs: {e}")
+                loop = asyncio.get_event_loop()
+                if loop.is_running():
+                    # If loop is running, load in background
+                    asyncio.create_task(self._load_jobs_async())
+                else:
+                    jobs = loop.run_until_complete(self._load_jobs_async())
+                    self.jobs = {job.job_id: job for job in jobs}
+            except RuntimeError:
+                jobs = asyncio.run(self._load_jobs_async())
+                self.jobs = {job.job_id: job for job in jobs}
+        except Exception as e:
+            logger.warning(f"Failed to load jobs: {e}")
+    
+    async def _load_jobs_async(self) -> List[AnalysisJob]:
+        """Load jobs asynchronously."""
+        jobs = await self.job_storage.get_jobs(limit=100)
+        return jobs
     
     def _save_jobs(self) -> None:
-        """Save analysis jobs to disk."""
-        jobs_data = [job.to_dict() for job in self.jobs.values()]
-        with open(self.jobs_file, "w") as f:
-            json.dump(jobs_data, f, indent=2)
+        """Save analysis jobs to storage."""
+        try:
+            import asyncio
+            try:
+                loop = asyncio.get_event_loop()
+                if loop.is_running():
+                    # If loop is running, save in background
+                    asyncio.create_task(self._save_jobs_async())
+                else:
+                    loop.run_until_complete(self._save_jobs_async())
+            except RuntimeError:
+                asyncio.run(self._save_jobs_async())
+        except Exception as e:
+            logger.warning(f"Failed to save jobs: {e}")
+    
+    async def _save_jobs_async(self) -> None:
+        """Save jobs asynchronously."""
+        for job in self.jobs.values():
+            # Check if job exists
+            existing_jobs = await self.job_storage.get_jobs(limit=1000)
+            existing_ids = {j.job_id for j in existing_jobs}
+            
+            if job.job_id not in existing_ids:
+                await self.job_storage.create_job(job)
+            else:
+                # Update job
+                updates = {
+                    "status": job.status,
+                    "started_at": job.started_at,
+                    "completed_at": job.completed_at,
+                    "error_message": job.error_message,
+                }
+                await self.job_storage.update_job(job.job_id, updates)
     
     async def run_analysis(
         self,
@@ -1203,7 +1252,29 @@ class TradeHistoryAnalyzer:
             # Check for snapshot
             snapshot = None
             if use_snapshot:
-                snapshot = await self.snapshot_manager.get_latest_snapshot(agent_id)
+                snapshot_data = await self.snapshot_storage.get_latest_snapshot(agent_id)
+                if snapshot_data:
+                    # Convert to AnalysisSnapshot
+                    from roma_trading.core.trade_history_analyzer import AnalysisSnapshot
+                    snapshot = AnalysisSnapshot(
+                        snapshot_id=snapshot_data.get("snapshot_id", "unknown"),
+                        agent_id=agent_id,
+                        created_at=datetime.fromisoformat(snapshot_data.get("created_at", datetime.now().isoformat())),
+                        analysis_period_start=datetime.fromisoformat(snapshot_data.get("analysis_period_start", datetime.now().isoformat())),
+                        analysis_period_end=datetime.fromisoformat(snapshot_data.get("analysis_period_end", datetime.now().isoformat())),
+                        total_trades=snapshot_data.get("total_trades", 0),
+                        analyzed_trade_ids=snapshot_data.get("analyzed_trade_ids", []),
+                        last_trade_timestamp=datetime.fromisoformat(snapshot_data.get("last_trade_timestamp", datetime.now().isoformat())),
+                        insights_generated=snapshot_data.get("insights_generated", 0),
+                        insight_ids=snapshot_data.get("insight_ids", []),
+                        win_rate=snapshot_data.get("win_rate", 0.0),
+                        profit_factor=snapshot_data.get("profit_factor", 0.0),
+                        avg_pnl=snapshot_data.get("avg_pnl", 0.0),
+                        total_pnl=snapshot_data.get("total_pnl", 0.0),
+                        snapshot_state=snapshot_data.get("snapshot_state", {}),
+                        job_id=snapshot_data.get("job_id"),
+                        is_latest=True,
+                    )
                 if snapshot:
                     # Use snapshot end time as start, but ensure we have a reasonable time range
                     snapshot_end = snapshot.analysis_period_end
@@ -1258,14 +1329,14 @@ class TradeHistoryAnalyzer:
             # Save insights
             insight_ids = []
             for insight in insights:
-                await self.insight_repo.save_insight(insight)
+                await self.insight_storage.save_insight(insight)
                 insight_ids.append(insight.insight_id)
             
             job.insights_generated = len(insights)
             job.insight_ids = insight_ids
             
             # Create snapshot
-            snapshot_id = await self.snapshot_manager.create_snapshot(
+            snapshot_id = await self._create_snapshot(
                 agent_id,
                 job,
                 trades,
@@ -1358,5 +1429,62 @@ class TradeHistoryAnalyzer:
         limit: int = 10,
     ) -> List[AnalysisInsight]:
         """Get latest insights for agent or global."""
-        return await self.insight_repo.get_latest_insights(agent_id, limit=limit)
+        return await self.insight_storage.get_latest_insights(agent_id, limit=limit)
+    
+    async def _create_snapshot(
+        self,
+        agent_id: Optional[str],
+        analysis_job: AnalysisJob,
+        trades: List[TradeHistory],
+        insights: List[AnalysisInsight],
+    ) -> str:
+        """Create and save analysis snapshot."""
+        # Calculate statistics
+        if trades:
+            winning_trades = [t for t in trades if t.pnl_usdt > 0]
+            win_rate = len(winning_trades) / len(trades) if trades else 0.0
+            total_profit = sum(t.pnl_usdt for t in winning_trades)
+            total_loss = abs(sum(t.pnl_usdt for t in trades if t.pnl_usdt < 0))
+            profit_factor = total_profit / total_loss if total_loss > 0 else float("inf")
+            avg_pnl = sum(t.pnl_usdt for t in trades) / len(trades)
+            total_pnl = sum(t.pnl_usdt for t in trades)
+            last_trade_time = max(t.exit_time for t in trades)
+        else:
+            win_rate = 0.0
+            profit_factor = 0.0
+            avg_pnl = 0.0
+            total_pnl = 0.0
+            last_trade_time = datetime.now()
+        
+        snapshot_data = {
+            "snapshot_id": f"snap_{analysis_job.job_id}",
+            "total_trades": len(trades),
+            "analyzed_trade_ids": [t.trade_id for t in trades],
+            "last_trade_timestamp": last_trade_time.isoformat(),
+            "insights_generated": len(insights),
+            "insight_ids": [ins.insight_id for ins in insights],
+            "win_rate": win_rate,
+            "profit_factor": profit_factor,
+            "avg_pnl": avg_pnl,
+            "total_pnl": total_pnl,
+            "snapshot_state": {
+                "trades_analyzed": len(trades),
+                "insights_generated": len(insights),
+            },
+            "job_id": analysis_job.job_id,
+        }
+        
+        period_start = analysis_job.scheduled_at - timedelta(days=analysis_job.analysis_period_days)
+        period_end = analysis_job.scheduled_at
+        
+        snapshot_id = await self.snapshot_storage.create_snapshot(
+            agent_id=agent_id,
+            snapshot_data=snapshot_data,
+            period_start=period_start,
+            period_end=period_end,
+            is_latest=True,
+        )
+        
+        logger.info(f"Created snapshot {snapshot_id} for agent {agent_id or 'global'}")
+        return snapshot_id
 
