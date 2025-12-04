@@ -38,53 +38,92 @@ class LargeTradeRecord:
     @classmethod
     def from_json(cls, payload: str) -> "LargeTradeRecord":
         data = json.loads(payload)
-        data["timestamp"] = datetime.fromisoformat(data["timestamp"])
+        timestamp = datetime.fromisoformat(data["timestamp"])
+        # Ensure timestamp is timezone-aware (assume UTC if naive)
+        if timestamp.tzinfo is None:
+            timestamp = timestamp.replace(tzinfo=timezone.utc)
+        data["timestamp"] = timestamp
         return cls(**data)
 
 
 class LargeTradeStore:
-    """Persist large trades to disk and provide query APIs."""
+    """Persist large trades using storage abstraction."""
 
-    def __init__(self, file_path: Path, max_records: int = 2000):
-        self.file_path = Path(file_path)
-        self.file_path.parent.mkdir(parents=True, exist_ok=True)
+    def __init__(
+        self,
+        file_path: Path = None,
+        max_records: int = 2000,
+        storage_factory=None,
+    ):
+        """
+        Initialize large trade store.
+        
+        Args:
+            file_path: Path to JSONL file (legacy, used if storage_factory uses file storage)
+            max_records: Maximum records to keep in memory cache
+            storage_factory: Optional storage factory (uses global if not provided)
+        """
+        # Get storage instance from factory
+        if storage_factory is None:
+            from roma_trading.storage import get_storage_factory
+            storage_factory = get_storage_factory()
+        
+        self.storage_factory = storage_factory
+        self.large_trade_storage = storage_factory.create_large_trade_storage(max_records=max_records)
+        
         self.max_records = max_records
         self._records: Deque[LargeTradeRecord] = deque(maxlen=max_records)
         self._lock = asyncio.Lock()
         self._append_subscribers: List[Callable[[LargeTradeRecord], Awaitable[None]]] = []
+        
+        # Load existing into cache
         self._load_existing()
 
     def _load_existing(self) -> None:
-        if not self.file_path.exists():
-            return
+        """Load existing records into memory cache."""
+        # Query recent records from storage
         try:
-            with self.file_path.open("r", encoding="utf-8") as f:
-                for line in f:
-                    line = line.strip()
-                    if not line:
-                        continue
-                    try:
-                        record = LargeTradeRecord.from_json(line)
-                        self._records.append(record)
-                    except Exception as exc:
-                        logger.warning(f"Failed to load large trade record: {exc}")
-        except Exception as exc:
-            logger.error(f"Failed to read large trade store: {exc}", exc_info=True)
+            result = self.large_trade_storage.query(limit=self.max_records, offset=0)
+            trades = result.get("trades", [])
+            
+            # Convert to LargeTradeRecord and add to cache
+            for trade_dict in trades:
+                try:
+                    record = LargeTradeRecord(
+                        symbol=trade_dict["symbol"],
+                        price=trade_dict["price"],
+                        quantity=trade_dict["quantity"],
+                        quote_quantity=trade_dict["quote_quantity"],
+                        side=trade_dict["side"],
+                        timestamp=datetime.fromisoformat(trade_dict["timestamp"]),
+                        dex=trade_dict["dex"],
+                        trade_id=trade_dict["trade_id"],
+                    )
+                    self._records.append(record)
+                except Exception as e:
+                    logger.warning(f"Failed to load trade record: {e}")
+            
+            logger.info(f"Loaded {len(trades)} large trades into cache")
+        except Exception as e:
+            logger.warning(f"Failed to load existing trades: {e}")
 
     async def append(self, record: LargeTradeRecord) -> None:
+        """Append record to memory cache and storage."""
         async with self._lock:
             self._records.append(record)
-        await asyncio.to_thread(self._write_record, record)
+        
+        # Save to storage
+        try:
+            await self.large_trade_storage.append(record)
+        except Exception as e:
+            logger.error(f"Failed to save large trade to storage: {e}")
+        
         # Notify subscribers without blocking append
         for subscriber in list(self._append_subscribers):
             try:
                 asyncio.create_task(subscriber(record))
             except Exception as exc:
                 logger.warning(f"Error notifying LargeTradeStore subscriber: {exc}", exc_info=True)
-
-    def _write_record(self, record: LargeTradeRecord) -> None:
-        with self.file_path.open("a", encoding="utf-8") as f:
-            f.write(record.to_json() + "\n")
 
     def register_append_subscriber(
         self,
@@ -103,12 +142,137 @@ class LargeTradeStore:
         limit: int = 100,
         offset: int = 0,
     ) -> Dict:
+        """Query large trades from storage."""
+        return self.large_trade_storage.query(
+            dex=dex,
+            symbol=symbol,
+            side=side,
+            min_amount=min_amount,
+            time_window=time_window,
+            limit=limit,
+            offset=offset,
+        )
+    
+    def _query_legacy(
+        self,
+        dex: Optional[DexName] = None,
+        symbol: Optional[str] = None,
+        side: Optional[Literal["BUY", "SELL"]] = None,
+        min_amount: float = 100_000,
+        time_window: str = "24h",
+        limit: int = 100,
+        offset: int = 0,
+    ) -> Dict:
+        """
+        Legacy query method (kept for reference).
+        """
         start_time = self._parse_time_window(time_window)
+        
+        if False:  # Legacy code removed
+            # Query from database
+            try:
+                from roma_trading.database.base import get_async_session
+                from roma_trading.database.services import LargeTradeService
+                
+                async def _query():
+                    async for session in get_async_session():
+                        try:
+                            db_trades, total = await LargeTradeService.query_large_trades(
+                                session=session,
+                                dex=dex,
+                                symbol=symbol,
+                                side=side,
+                                min_amount=min_amount,
+                                start_time=start_time,
+                                limit=limit,
+                                offset=offset,
+                            )
+                            
+                            # Convert to response format
+                            trades = [
+                                {
+                                    "symbol": t.symbol,
+                                    "price": t.price,
+                                    "quantity": t.quantity,
+                                    "quote_quantity": t.quote_quantity,
+                                    "timestamp": t.timestamp.isoformat(),
+                                    "is_buyer_maker": t.side == "SELL",
+                                    "dex": t.dex,
+                                    "trade_id": t.trade_id,
+                                    "side": t.side,
+                                }
+                                for t in db_trades
+                            ]
+                            
+                            # Calculate stats from all filtered trades (need to query without limit)
+                            all_trades, _ = await LargeTradeService.query_large_trades(
+                                session=session,
+                                dex=dex,
+                                symbol=symbol,
+                                side=side,
+                                min_amount=min_amount,
+                                start_time=start_time,
+                                limit=None,
+                                offset=0,
+                            )
+                            stats = self._calculate_stats_from_db(all_trades)
+                            
+                            return {
+                                "trades": trades,
+                                "stats": stats,
+                                "pagination": {
+                                    "total": total,
+                                    "limit": limit,
+                                    "offset": offset,
+                                },
+                            }
+                        finally:
+                            await session.close()
+                
+                # Run async query
+                try:
+                    loop = asyncio.get_event_loop()
+                    if loop.is_running():
+                        # If loop is running, we need to use a different approach
+                        # For now, fall back to memory cache
+                        logger.warning("Event loop is running, falling back to memory cache query")
+                        return self._query_from_cache(dex, symbol, side, min_amount, start_time, limit, offset)
+                    else:
+                        return loop.run_until_complete(_query())
+                except RuntimeError:
+                    return asyncio.run(_query())
+            except Exception as e:
+                logger.warning(f"Failed to query from database: {e}, falling back to cache")
+                return self._query_from_cache(dex, symbol, side, min_amount, start_time, limit, offset)
+        else:
+            # Query from memory cache
+            return self._query_from_cache(dex, symbol, side, min_amount, start_time, limit, offset)
+    
+    def _query_from_cache(
+        self,
+        dex: Optional[DexName],
+        symbol: Optional[str],
+        side: Optional[Literal["BUY", "SELL"]],
+        min_amount: float,
+        start_time: datetime,
+        limit: int,
+        offset: int,
+    ) -> Dict:
+        """Query from memory cache."""
         filtered: List[LargeTradeRecord] = []
+
+        # Ensure start_time is timezone-aware
+        if start_time.tzinfo is None:
+            start_time = start_time.replace(tzinfo=timezone.utc)
 
         with self._records_lockless_snapshot() as snapshot:
             for record in reversed(snapshot):
-                if record.timestamp < start_time:
+                # Ensure record timestamp is timezone-aware
+                record_timestamp = record.timestamp
+                if record_timestamp.tzinfo is None:
+                    record_timestamp = record_timestamp.replace(tzinfo=timezone.utc)
+                
+                if record_timestamp < start_time:
                     break
                 if dex and record.dex != dex:
                     continue
@@ -120,18 +284,13 @@ class LargeTradeStore:
                     continue
                 filtered.append(record)
 
-        # Apply pagination: ensure we don't return more than limit items
+        # Apply pagination
         if limit is not None and limit > 0:
             paginated = filtered[offset : offset + limit]
         else:
             paginated = filtered[offset:]
         
         stats = self._calculate_stats(filtered)
-        
-        logger.debug(
-            f"LargeTradeStore.query: filtered={len(filtered)}, "
-            f"limit={limit}, offset={offset}, paginated={len(paginated)}"
-        )
         
         return {
             "trades": [
@@ -154,6 +313,35 @@ class LargeTradeStore:
                 "limit": limit or len(paginated),
                 "offset": offset,
             },
+        }
+    
+    @staticmethod
+    def _calculate_stats_from_db(trades: List) -> Dict:
+        """Calculate stats from database trade objects."""
+        if not trades:
+            return {
+                "total_count": 0,
+                "total_volume": 0.0,
+                "buy_count": 0,
+                "sell_count": 0,
+                "buy_volume": 0.0,
+                "sell_volume": 0.0,
+                "symbol_distribution": {},
+            }
+        total_volume = sum(t.quote_quantity for t in trades)
+        buy_trades = [t for t in trades if t.side == "BUY"]
+        sell_trades = [t for t in trades if t.side == "SELL"]
+        symbol_dist: Dict[str, int] = {}
+        for trade in trades:
+            symbol_dist[trade.symbol] = symbol_dist.get(trade.symbol, 0) + 1
+        return {
+            "total_count": len(trades),
+            "total_volume": total_volume,
+            "buy_count": len(buy_trades),
+            "sell_count": len(sell_trades),
+            "buy_volume": sum(t.quote_quantity for t in buy_trades),
+            "sell_volume": sum(t.quote_quantity for t in sell_trades),
+            "symbol_distribution": symbol_dist,
         }
 
     @staticmethod

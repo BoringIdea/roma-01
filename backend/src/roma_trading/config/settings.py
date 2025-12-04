@@ -65,7 +65,7 @@ class Settings(BaseSettings):
     aster_private_key_gpt: Optional[str] = None
 
     # Database
-    database_url: str = "sqlite+aiosqlite:///./roma_trading.db"
+    database_url: str = "sqlite+aiosqlite:///./data/roma_trading.db"
 
     # API Configuration
     api_host: str = "0.0.0.0"

@@ -564,6 +564,21 @@ MIT 许可证 - 详见 [LICENSE](LICENSE) 文件。
 - 💬 讨论：[GitHub Discussions](https://github.com/lukema95/roma-01/discussions)
 - 📧 邮箱：lukema95@gmail.com
 
+### 文件数据迁移到 SQLite 数据库
+
+如果你之前已经在本地运行过系统并产生了 `logs/` 目录下的决策/交易数据，以及 `data/large_trades.jsonl` 等文件，可以通过下述脚本一次性迁移到 SQLite 数据库：
+
+```bash
+cd backend
+python scripts/migrate_to_database.py
+```
+
+脚本会：
+- 自动初始化数据库（默认路径：`backend/data/roma_trading.db`）
+- 从 `logs/decisions/` 中迁移：交易历史、权益历史、决策日志
+- 从 `logs/analysis/` 中迁移：分析洞察、分析快照、分析任务
+- 从 `data/large_trades.jsonl` 中迁移：大额交易记录
+
 ---
 
 ## 🙏 致谢
