@@ -116,10 +116,16 @@ cd backend
 cp .env.example .env
 nano .env  # Add your keys
 
-# 4. Start backend
+# 4. (Optional) Customize trading config
+# On first start, if backend/config/trading_config.yaml is missing,
+# the backend start script will automatically create it from:
+#   backend/config/trading_config.yaml.example
+# You can edit backend/config/trading_config.yaml afterwards to customize accounts and agents.
+
+# 5. Start backend
 ./start.sh
 
-# 5. Frontend setup (new terminal)
+# 6. Frontend setup (new terminal)
 cd ../frontend
 npm install
 npm run dev

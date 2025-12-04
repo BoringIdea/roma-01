@@ -116,10 +116,16 @@ cd backend
 cp .env.example .env
 nano .env  # 添加您的密钥
 
-# 4. 启动后端
+# 4.（可选）自定义交易配置
+# 第一次启动时，如果找不到 backend/config/trading_config.yaml，
+# 启动脚本会自动从 backend/config/trading_config.yaml.example
+# 生成一份默认配置文件。你可以在生成后编辑：
+#   backend/config/trading_config.yaml
+
+# 5. 启动后端
 ./start.sh
 
-# 5. 前端设置（新终端）
+# 6. 前端设置（新终端）
 cd ../frontend
 npm install
 npm run dev

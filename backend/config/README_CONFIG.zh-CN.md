@@ -7,6 +7,8 @@
 ```bash
 cd backend/config
 # 编辑 trading_config.yaml，填写账户 / 模型 / 智能体信息
+# 如果 trading_config.yaml 不存在，首次运行 backend/start.sh 时
+# 会自动从 trading_config.yaml.example 生成一份默认配置文件。
 vim trading_config.yaml   # 或使用你偏好的编辑器
 ```
 

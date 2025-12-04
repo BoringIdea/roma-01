@@ -6,6 +6,21 @@ set -e
 echo "🚀 Starting ROMA Trading Platform Backend..."
 echo ""
 
+# Ensure main trading config exists (auto-create from example if missing)
+if [ ! -f "config/trading_config.yaml" ]; then
+    if [ -f "config/trading_config.yaml.example" ]; then
+        echo "ℹ️  config/trading_config.yaml not found, creating from template..."
+        cp config/trading_config.yaml.example config/trading_config.yaml
+        echo "✅ Created config/trading_config.yaml from config/trading_config.yaml.example"
+        echo ""
+    else:
+        echo "❌ config/trading_config.yaml not found and no template config/trading_config.yaml.example present."
+        echo "Please add a config file under backend/config first."
+        echo ""
+        exit 1
+    fi
+fi
+
 # Check if virtual environment exists
 if [ ! -d "venv" ]; then
     echo "❌ Virtual environment not found!"

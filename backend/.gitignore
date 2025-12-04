@@ -2,6 +2,9 @@
 .env
 .env.local
 
+# Trading configuration (user-specific, not tracked)
+config/trading_config.yaml
+
 # Database files
 *.db
 *.db-shm
