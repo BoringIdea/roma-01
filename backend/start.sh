@@ -10,10 +10,10 @@ echo ""
 if [ ! -f "config/trading_config.yaml" ]; then
     if [ -f "config/trading_config.yaml.example" ]; then
         echo "ℹ️  config/trading_config.yaml not found, creating from template..."
-        cp config/trading_config.yaml.example config/trading_config.yaml
+        cp "config/trading_config.yaml.example" "config/trading_config.yaml"
         echo "✅ Created config/trading_config.yaml from config/trading_config.yaml.example"
         echo ""
-    else:
+    else
         echo "❌ config/trading_config.yaml not found and no template config/trading_config.yaml.example present."
         echo "Please add a config file under backend/config first."
         echo ""
