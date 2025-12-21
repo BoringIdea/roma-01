@@ -45,9 +45,9 @@ export default function RootLayout({
       <body className={`${plexMono.variable} ${brandFont.variable} antialiased`}>
         <ThemeProvider />
         <LanguageProvider />
-        <div className="min-h-screen flex flex-col">
+        <div className="flex flex-col w-full">
           <Header />
-          <main className="flex-1">
+          <main className="flex-1 pt-[var(--header-h)]">
             {children}
           </main>
         </div>

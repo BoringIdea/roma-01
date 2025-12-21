@@ -33,7 +33,7 @@ export default function TokenRankings({
   dexFilter,
 }: TokenRankingsProps) {
   const language = useLanguage((s) => s.language);
-  
+
   // Default sort by volume (quote_volume_24h) descending
   const [sortField, setSortField] = useState<SortField>("quote_volume_24h");
   const [sortOrder, setSortOrder] = useState<SortOrder>("desc");
@@ -46,19 +46,19 @@ export default function TokenRankings({
     () => api.getTokenRankings("volume", dexFilter === "all" ? undefined : dexFilter, "desc", 100),
     { refreshInterval: 30000 }
   );
-  
+
   const { data: priceChangeData } = useSWR(
     `/dashboard/rankings/price-change?dex=${dexFilter === "all" ? "" : dexFilter}`,
     () => api.getTokenRankings("price-change", dexFilter === "all" ? undefined : dexFilter, "desc", 100),
     { refreshInterval: 30000 }
   );
-  
+
   const { data: fundingRateData } = useSWR(
     `/dashboard/rankings/funding-rate?dex=${dexFilter === "all" ? "" : dexFilter}`,
     () => api.getTokenRankings("funding-rate", dexFilter === "all" ? undefined : dexFilter, "desc", 100),
     { refreshInterval: 30000 }
   );
-  
+
   const { data: openInterestData } = useSWR(
     (dexFilter === "hyperliquid" || dexFilter === "all") ? `/dashboard/rankings/open-interest` : null,
     () => api.getTokenRankings("open-interest", undefined, "desc", 100),
@@ -68,7 +68,7 @@ export default function TokenRankings({
   // Merge all ranking data by symbol and dex
   const mergedData = useMemo(() => {
     const dataMap = new Map<string, TokenRanking>();
-    
+
     // Merge volume data
     if (volumeData) {
       volumeData.forEach((item: any) => {
@@ -76,7 +76,7 @@ export default function TokenRankings({
         dataMap.set(key, { ...item });
       });
     }
-    
+
     // Merge price change data
     if (priceChangeData) {
       priceChangeData.forEach((item: any) => {
@@ -85,7 +85,7 @@ export default function TokenRankings({
         dataMap.set(key, { ...existing, ...item });
       });
     }
-    
+
     // Merge funding rate data
     if (fundingRateData) {
       fundingRateData.forEach((item: any) => {
@@ -94,7 +94,7 @@ export default function TokenRankings({
         dataMap.set(key, { ...existing, funding_rate: item.funding_rate });
       });
     }
-    
+
     // Merge open interest data (Hyperliquid only)
     if (openInterestData) {
       openInterestData.forEach((item: any) => {
@@ -103,7 +103,7 @@ export default function TokenRankings({
         dataMap.set(key, { ...existing, open_interest: item.open_interest });
       });
     }
-    
+
     return Array.from(dataMap.values());
   }, [volumeData, priceChangeData, fundingRateData, openInterestData]);
 
@@ -186,39 +186,39 @@ export default function TokenRankings({
 
   return (
     <div
-      className="rounded-xl border p-5"
+      className="border p-0"
       style={{
         borderColor: "var(--panel-border)",
         background: "var(--panel-bg)",
       }}
     >
-      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between mb-4">
+      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between p-6 border-b" style={{ borderColor: "var(--panel-border)" }}>
         <div>
-          <h2 className="text-sm font-semibold uppercase tracking-wider">
+          <h2 className="text-sm font-black uppercase tracking-widest">
             {language === "zh" ? "代币数据排行" : "Token Rankings"}
           </h2>
           {sortedData.length > 0 && (
-            <p className="text-xs mt-1" style={{ color: "var(--muted-text)" }}>
+            <p className="text-[10px] mt-1 font-bold uppercase opacity-40 px-1 border inline-block" style={{ borderColor: "var(--panel-border)" }}>
               {language === "zh" ? "总计" : "Total"}: {sortedData.length} {language === "zh" ? "个代币" : "tokens"}
             </p>
           )}
         </div>
 
         {sortedData.length > pageSize && (
-          <div className="flex items-center gap-1 text-xs">
+          <div className="flex items-center text-[10px] font-bold uppercase tracking-widest">
             <button
-              className="px-2 py-1 border rounded disabled:opacity-40"
+              className="px-3 py-1 border hover:bg-black hover:text-white transition-colors disabled:opacity-20 translate-x-[1px]"
               style={{ borderColor: "var(--panel-border)" }}
               disabled={!canPrev}
               onClick={() => setPage((p) => Math.max(0, p - 1))}
             >
               {language === "zh" ? "上一页" : "Prev"}
             </button>
-            <span>
+            <span className="px-3 py-1 border relative z-10 bg-white" style={{ borderColor: "var(--panel-border)" }}>
               {page + 1}/{totalPages || 1}
             </span>
             <button
-              className="px-2 py-1 border rounded disabled:opacity-40"
+              className="px-3 py-1 border hover:bg-black hover:text-white transition-colors disabled:opacity-20 -translate-x-[1px]"
               style={{ borderColor: "var(--panel-border)" }}
               disabled={!canNext}
               onClick={() => setPage((p) => (canNext ? p + 1 : p))}
@@ -230,54 +230,54 @@ export default function TokenRankings({
       </div>
 
       {isLoading ? (
-        <div className="text-center py-8">Loading...</div>
+        <div className="text-center py-12 text-xs font-bold uppercase tracking-widest opacity-30">Loading...</div>
       ) : error ? (
-        <div className="text-center py-8 text-red-500">
+        <div className="text-center py-12 text-xs font-bold uppercase tracking-widest text-red-500">
           {language === "zh" ? "加载数据失败" : "Error loading data"}
         </div>
       ) : !sortedData || sortedData.length === 0 ? (
-        <div className="text-center py-8" style={{ color: "var(--muted-text)" }}>
+        <div className="text-center py-12 text-xs font-bold uppercase tracking-widest opacity-30" style={{ color: "var(--muted-text)" }}>
           {language === "zh" ? "暂无数据" : "No data available"}
         </div>
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
             <thead>
-              <tr style={{ borderBottomColor: "var(--panel-border)" }}>
+              <tr className="border-b" style={{ borderColor: "var(--panel-border)" }}>
                 <th
-                  className="text-left py-2 cursor-pointer hover:opacity-80"
+                  className="text-left py-4 px-6 font-bold uppercase tracking-widest cursor-pointer hover:bg-black hover:text-white transition-colors"
                   onClick={() => handleSort("symbol")}
                 >
-                  {language === "zh" ? "交易对" : "Symbol"}
+                  {language === "zh" ? "资产" : "Symbol"}
                   <SortIcon field="symbol" />
                 </th>
                 <th
-                  className="text-right py-2 cursor-pointer hover:opacity-80"
+                  className="text-right py-4 px-6 font-bold uppercase tracking-widest cursor-pointer hover:bg-black hover:text-white transition-colors"
                   onClick={() => handleSort("funding_rate")}
                 >
-                  {language === "zh" ? "资金费率" : "Funding Rate"}
+                  {language === "zh" ? "资金费" : "Funding"}
                   <SortIcon field="funding_rate" />
                 </th>
                 <th
-                  className="text-right py-2 cursor-pointer hover:opacity-80"
+                  className="text-right py-4 px-6 font-bold uppercase tracking-widest cursor-pointer hover:bg-black hover:text-white transition-colors"
                   onClick={() => handleSort("quote_volume_24h")}
                 >
-                  {language === "zh" ? "交易量(24h)" : "Volume (24h)"}
+                  {language === "zh" ? "成交额" : "Volume"}
                   <SortIcon field="quote_volume_24h" />
                 </th>
                 <th
-                  className="text-right py-2 cursor-pointer hover:opacity-80"
+                  className="text-right py-4 px-6 font-bold uppercase tracking-widest cursor-pointer hover:bg-black hover:text-white transition-colors"
                   onClick={() => handleSort("price_change_percent_24h")}
                 >
-                  {language === "zh" ? "涨跌幅(24h)" : "Change (24h)"}
+                  {language === "zh" ? "涨跌幅" : "Change"}
                   <SortIcon field="price_change_percent_24h" />
                 </th>
                 {(dexFilter === "hyperliquid" || dexFilter === "all") && (
                   <th
-                    className="text-right py-2 cursor-pointer hover:opacity-80"
+                    className="text-right py-4 px-6 font-bold uppercase tracking-widest cursor-pointer hover:bg-black hover:text-white transition-colors"
                     onClick={() => handleSort("open_interest")}
                   >
-                    {language === "zh" ? "未平仓" : "OI"}
+                    {language === "zh" ? "持仓" : "OI"}
                     <SortIcon field="open_interest" />
                   </th>
                 )}
@@ -287,36 +287,38 @@ export default function TokenRankings({
               {paginatedData.map((token, index) => (
                 <tr
                   key={`${token.symbol}-${token.dex}-${index}`}
-                  style={{ borderBottomColor: "var(--panel-border)" }}
+                  className="border-b last:border-b-0 hover:bg-neutral-50 transition-colors"
+                  style={{ borderColor: "var(--panel-border)" }}
                 >
-                  <td className="py-2">
+                  <td className="py-4 px-6 font-bold italic">
                     {token.symbol}
                   </td>
-                  <td className="text-right py-2">
+                  <td className="text-right py-4 px-6 font-mono tabular-nums">
                     {token.funding_rate !== undefined
                       ? `${token.funding_rate.toFixed(4)}%`
                       : "-"}
                   </td>
-                  <td className="text-right py-2 font-semibold">
+                  <td className="text-right py-4 px-6 font-black font-mono tabular-nums">
                     {token.quote_volume_24h
                       ? `$${token.quote_volume_24h.toLocaleString(undefined, { maximumFractionDigits: 0 })}`
                       : "-"}
                   </td>
-                  <td
-                    className="text-right py-2"
-                    style={{
-                      color:
-                        (token.price_change_percent_24h ?? 0) >= 0
-                          ? "#10b981"
-                          : "#ef4444",
-                    }}
-                  >
-                    {token.price_change_percent_24h !== undefined
-                      ? `${token.price_change_percent_24h >= 0 ? "+" : ""}${token.price_change_percent_24h.toFixed(2)}%`
-                      : "-"}
+                  <td className="text-right py-4 px-6">
+                    <span
+                      className="font-black italic px-2 py-0.5 border text-[9px] tracking-tighter"
+                      style={{
+                        borderColor: (token.price_change_percent_24h ?? 0) >= 0 ? "#22c55e" : "#ef4444",
+                        color: (token.price_change_percent_24h ?? 0) >= 0 ? "#22c55e" : "#ef4444",
+                        background: (token.price_change_percent_24h ?? 0) >= 0 ? "rgba(34, 197, 94, 0.05)" : "rgba(239, 68, 68, 0.05)",
+                      }}
+                    >
+                      {token.price_change_percent_24h !== undefined
+                        ? `${token.price_change_percent_24h >= 0 ? "+" : ""}${token.price_change_percent_24h.toFixed(2)}%`
+                        : "-"}
+                    </span>
                   </td>
                   {(dexFilter === "hyperliquid" || dexFilter === "all") && (
-                    <td className="text-right py-2">
+                    <td className="text-right py-4 px-6 font-mono tabular-nums opacity-60">
                       {token.open_interest
                         ? `$${token.open_interest.toLocaleString(undefined, { maximumFractionDigits: 0 })}`
                         : "-"}

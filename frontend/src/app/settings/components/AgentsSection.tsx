@@ -15,20 +15,20 @@ const RISK_FIELDS: Array<{
   labelZh: string;
   labelEn: string;
 }> = [
-  { key: "max_positions", labelZh: "最大持仓数", labelEn: "Max Positions" },
-  { key: "max_leverage", labelZh: "最大杠杆", labelEn: "Max Leverage" },
-  { key: "max_position_size_pct", labelZh: "单仓占比(%)", labelEn: "Max Position Size (%)" },
-  { key: "max_total_position_pct", labelZh: "总仓位占比(%)", labelEn: "Max Total Exposure (%)" },
-  { key: "max_single_trade_pct", labelZh: "单笔仓位上限(%)", labelEn: "Max Single Trade (%)" },
-  {
-    key: "max_single_trade_with_positions_pct",
-    labelZh: "持仓情况下单笔上限(%)",
-    labelEn: "Max Trade With Existing (%)",
-  },
-  { key: "max_daily_loss_pct", labelZh: "最大日亏损(%)", labelEn: "Max Daily Drawdown (%)" },
-  { key: "stop_loss_pct", labelZh: "止损(%)", labelEn: "Stop Loss (%)" },
-  { key: "take_profit_pct", labelZh: "止盈(%)", labelEn: "Take Profit (%)" },
-];
+    { key: "max_positions", labelZh: "最大持仓数", labelEn: "Max Positions" },
+    { key: "max_leverage", labelZh: "最大杠杆", labelEn: "Max Leverage" },
+    { key: "max_position_size_pct", labelZh: "单仓占比(%)", labelEn: "Max Position Size (%)" },
+    { key: "max_total_position_pct", labelZh: "总仓位占比(%)", labelEn: "Max Total Exposure (%)" },
+    { key: "max_single_trade_pct", labelZh: "单笔仓位上限(%)", labelEn: "Max Single Trade (%)" },
+    {
+      key: "max_single_trade_with_positions_pct",
+      labelZh: "持仓情况下单笔上限(%)",
+      labelEn: "Max Trade With Existing (%)",
+    },
+    { key: "max_daily_loss_pct", labelZh: "最大日亏损(%)", labelEn: "Max Daily Drawdown (%)" },
+    { key: "stop_loss_pct", labelZh: "止损(%)", labelEn: "Stop Loss (%)" },
+    { key: "take_profit_pct", labelZh: "止盈(%)", labelEn: "Take Profit (%)" },
+  ];
 
 const parseCoinsInput = (value: string): string[] =>
   value
@@ -290,7 +290,7 @@ export function AgentsSection({
 }: AgentsSectionProps) {
   return (
     <section
-      className="rounded-xl border p-5"
+      className="rounded-md border p-5"
       style={{ borderColor: "var(--panel-border)", background: "var(--panel-bg)" }}
     >
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">

@@ -1121,7 +1121,7 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col" style={{ background: "var(--app-bg)", color: "var(--foreground)" }}>
+    <div className="flex flex-col" style={{ background: "var(--app-bg)", color: "var(--foreground)" }}>
       <div className="mx-auto w-full max-w-6xl px-4 py-6 space-y-6">
         <header className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
           <div>
@@ -1136,7 +1136,7 @@ export default function SettingsPage() {
           </div>
           <Link
             href="/"
-            className="inline-flex items-center justify-center rounded border px-3 py-1 text-[11px] uppercase tracking-widest transition hover:opacity-80"
+            className="inline-flex items-center justify-center rounded-md border px-3 py-1 text-[11px] uppercase tracking-widest transition hover:opacity-80"
             style={{
               borderColor: "var(--panel-border)",
               color: "var(--brand-accent)",
@@ -1147,7 +1147,7 @@ export default function SettingsPage() {
         </header>
 
         {configError && (
-          <div className="rounded border px-4 py-3 text-xs" style={{ borderColor: "#ef4444", color: "#ef4444" }}>
+          <div className="rounded-md border px-4 py-3 text-xs" style={{ borderColor: "#ef4444", color: "#ef4444" }}>
             {configError instanceof Error ? configError.message : String(configError)}
           </div>
         )}
@@ -1252,7 +1252,7 @@ export default function SettingsPage() {
           )}
         </div>
 
-        <div className="sticky bottom-4 flex flex-wrap items-center justify-end gap-2 rounded border px-4 py-3"
+        <div className="sticky bottom-4 flex flex-wrap items-center justify-end gap-2 rounded-md border px-4 py-3"
           style={{ borderColor: "var(--panel-border)", background: "var(--panel-bg)" }}
         >
           <div className="flex-1 text-[11px]" style={{ color: "var(--muted-text)" }}>
@@ -1273,7 +1273,7 @@ export default function SettingsPage() {
           <button
             onClick={handleDiscard}
             disabled={saving || !hasChanges}
-            className="rounded border px-4 py-2 text-[11px] uppercase tracking-widest transition hover:opacity-80 disabled:opacity-40"
+            className="rounded-md border px-4 py-2 text-[11px] uppercase tracking-widest transition hover:opacity-80 disabled:opacity-40"
             style={{ borderColor: "var(--panel-border)" }}
           >
             {language === "zh" ? "撤销" : "Discard"}
@@ -1281,7 +1281,7 @@ export default function SettingsPage() {
           <button
             onClick={handleSave}
             disabled={saving || !hasChanges}
-            className="rounded px-4 py-2 text-[11px] font-semibold uppercase tracking-widest transition hover:opacity-80 disabled:opacity-40"
+            className="rounded-md px-4 py-2 text-[11px] font-semibold uppercase tracking-widest transition hover:opacity-80 disabled:opacity-40"
             style={{
               background: "var(--brand-accent)",
               color: "#ffffff",

@@ -19,18 +19,17 @@ export default function DashboardHeader({
 
   return (
     <div
-      className="rounded-xl border p-5"
+      className="border-b pb-8 mb-8"
       style={{
         borderColor: "var(--panel-border)",
-        background: "var(--panel-bg)",
       }}
     >
       <div>
-        <h1 className="text-lg font-semibold">
+        <h1 className="text-4xl font-black uppercase tracking-tighter italic">
           {language === "zh" ? "交易看板" : "Trading Dashboard"}
           {dexFilter !== "all" && (
-            <span className="ml-2 text-sm font-normal opacity-70">
-              - {getDexLabel()}
+            <span className="ml-4 text-lg font-normal opacity-50 not-italic">
+              [{getDexLabel()}]
             </span>
           )}
         </h1>

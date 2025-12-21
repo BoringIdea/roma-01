@@ -45,17 +45,17 @@ export function RightSideTabs({ agents }: RightSideTabsProps) {
 
   return (
     <div
-      className="flex h-full flex-col rounded-md border p-3"
+      className="flex h-full flex-col border p-4"
       style={{
         background: "var(--panel-bg)",
         borderColor: "var(--panel-border)",
       }}
     >
       {/* Tabs Header */}
-      <div className="mb-3">
+      <div className="mb-4">
         <div
-          className="flex rounded border"
-          style={{ 
+          className="flex border"
+          style={{
             borderColor: "var(--chip-border)",
           }}
         >
@@ -95,10 +95,10 @@ export function RightSideTabs({ agents }: RightSideTabsProps) {
               <select
                 value={filterDex}
                 onChange={(e) => setFilterDex(e.target.value)}
-                className="w-full px-2 py-1.5 rounded border text-xs chip-btn"
+                className="w-full px-4 py-3 border text-[10px] font-bold uppercase tracking-widest"
                 style={{
-                  background: "var(--panel-bg)",
-                  borderColor: "var(--chip-border)",
+                  background: "transparent",
+                  borderColor: "var(--panel-border)",
                   color: "var(--foreground)",
                 }}
               >
@@ -124,10 +124,10 @@ export function RightSideTabs({ agents }: RightSideTabsProps) {
               <select
                 value={filterAccount}
                 onChange={(e) => setFilterAccount(e.target.value)}
-                className="w-full px-2 py-1.5 rounded border text-xs chip-btn"
+                className="w-full px-4 py-3 border text-[10px] font-bold uppercase tracking-widest"
                 style={{
-                  background: "var(--panel-bg)",
-                  borderColor: "var(--chip-border)",
+                  background: "transparent",
+                  borderColor: "var(--panel-border)",
                   color: "var(--foreground)",
                 }}
               >
@@ -152,10 +152,10 @@ export function RightSideTabs({ agents }: RightSideTabsProps) {
             <select
               value={filterAgent}
               onChange={(e) => setFilterAgent(e.target.value)}
-              className="w-full px-2 py-1.5 rounded border text-xs chip-btn"
+              className="w-full px-4 py-3 border text-[10px] font-bold uppercase tracking-widest"
               style={{
-                background: "var(--panel-bg)",
-                borderColor: "var(--chip-border)",
+                background: "transparent",
+                borderColor: "var(--panel-border)",
                 color: "var(--foreground)",
               }}
             >
@@ -198,22 +198,22 @@ export function RightSideTabs({ agents }: RightSideTabsProps) {
         </div>
       )}
 
-          {/* Content */}
-          <div className="flex-1 overflow-y-auto">
-            {activeTab === "positions" ? (
-              <PositionsContent agents={agents} filterAgent={filterAgent} filterDex={filterDex} filterAccount={filterAccount} />
-            ) : activeTab === "trades" ? (
-              <TradesContent agents={agents} filterAgent={filterAgent} filterDex={filterDex} filterAccount={filterAccount} />
-            ) : activeTab === "decisions" ? (
-              <DecisionsContent agents={agents} filterAgent={filterAgent} filterDex={filterDex} filterAccount={filterAccount} />
-            ) : activeTab === "prompts" ? (
-              <PromptsContent agents={agents} filterAgent={filterAgent} />
-            ) : activeTab === "analysis" ? (
-              <AnalysisContent agents={agents} filterAgent={filterAgent} />
-            ) : (
-              <ChatContent />
-            )}
-          </div>
+      {/* Content */}
+      <div className="flex-1 overflow-y-auto">
+        {activeTab === "positions" ? (
+          <PositionsContent agents={agents} filterAgent={filterAgent} filterDex={filterDex} filterAccount={filterAccount} />
+        ) : activeTab === "trades" ? (
+          <TradesContent agents={agents} filterAgent={filterAgent} filterDex={filterDex} filterAccount={filterAccount} />
+        ) : activeTab === "decisions" ? (
+          <DecisionsContent agents={agents} filterAgent={filterAgent} filterDex={filterDex} filterAccount={filterAccount} />
+        ) : activeTab === "prompts" ? (
+          <PromptsContent agents={agents} filterAgent={filterAgent} />
+        ) : activeTab === "analysis" ? (
+          <AnalysisContent agents={agents} filterAgent={filterAgent} />
+        ) : (
+          <ChatContent />
+        )}
+      </div>
     </div>
   );
 }
@@ -320,9 +320,9 @@ function PositionsContent({
         const brandBorder = `${color}55`;
 
         return (
-          <div 
-            key={agent.id} 
-            className="rounded-md border p-3"
+          <div
+            key={agent.id}
+            className="border p-4"
             style={{
               background: brandBg as any,
               borderColor: brandBorder as any,
@@ -331,20 +331,19 @@ function PositionsContent({
             {/* Model Header */}
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
-                <span 
-                  className="text-xs font-semibold uppercase tracking-wider" 
+                <span
+                  className="text-xs font-semibold uppercase tracking-wider"
                   style={{ color: "var(--foreground)" }}
                 >
                   {getAgentModelName(agent) || agent.name || agent.id}
                 </span>
-                <span 
-                  className="text-[10px] px-1.5 py-0.5 rounded" 
-                  style={{ 
-                    background: "rgba(0, 0, 0, 0.2)",
-                    color: "var(--muted-text)" 
+                <span
+                  className="text-[10px] font-bold uppercase opacity-30 px-1 border"
+                  style={{
+                    borderColor: "var(--panel-border)",
                   }}
                 >
-                  {positions.length}
+                  [{positions.length}]
                 </span>
               </div>
               <div
@@ -397,10 +396,10 @@ function PositionsContent({
                             <span className="font-bold">{position.symbol}</span>
                           </div>
                         </td>
-                        <td 
-                          className="py-1.5 pr-2"
-                          style={{ 
-                            color: position.side === "long" ? "#22c55e" : "#ef4444" 
+                        <td
+                          className="py-1.5 pr-2 font-black italic text-[9px] tracking-tighter"
+                          style={{
+                            color: position.side === "long" ? "#22c55e" : "#ef4444"
                           }}
                         >
                           {position.side.toUpperCase()}
@@ -1130,12 +1129,12 @@ function AnalysisContent({
 }) {
   const language = useLanguage((s) => s.language);
   const t = getTranslation(language);
-  
+
   // Get selected agent or first running agent
-  const selectedAgentId = filterAgent !== "all" 
-    ? filterAgent 
+  const selectedAgentId = filterAgent !== "all"
+    ? filterAgent
     : agents.find(a => a.is_running)?.id;
-  
+
   const { data: insights, isLoading, error, mutate } = useSWR(
     selectedAgentId ? ["agent-insights", selectedAgentId] : null,
     ([, agentId]) => api.getAgentInsights(agentId, 10, 0.7),
@@ -1144,7 +1143,7 @@ function AnalysisContent({
       refreshInterval: 30000, // Refresh every 30 seconds
     }
   );
-  
+
   const { data: globalInsights } = useSWR(
     "global-insights",
     () => api.getGlobalInsights(5, 0.7),
@@ -1153,7 +1152,7 @@ function AnalysisContent({
       refreshInterval: 60000, // Refresh every minute
     }
   );
-  
+
   if (!selectedAgentId) {
     return (
       <div className="flex items-center justify-center h-full" style={{ color: "var(--muted-text)" }}>
@@ -1164,7 +1163,7 @@ function AnalysisContent({
       </div>
     );
   }
-  
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-full" style={{ color: "var(--muted-text)" }}>
@@ -1172,7 +1171,7 @@ function AnalysisContent({
       </div>
     );
   }
-  
+
   if (error) {
     return (
       <div className="flex items-center justify-center h-full" style={{ color: "var(--error)" }}>
@@ -1180,10 +1179,10 @@ function AnalysisContent({
       </div>
     );
   }
-  
+
   const agentInsights = insights?.data?.insights || [];
   const sharedInsights = globalInsights?.data?.insights || [];
-  
+
   const categoryNames: Record<string, { en: string; zh: string }> = {
     entry_timing: { en: "Entry Timing", zh: "入场时机" },
     exit_timing: { en: "Exit Timing", zh: "出场时机" },
@@ -1194,7 +1193,7 @@ function AnalysisContent({
   };
   
   return (
-    <div className="flex h-full flex-col gap-4 overflow-y-auto" style={{ maxHeight: "calc(100vh - 300px)" }}>
+    <div className="flex flex-col gap-4">
       {/* Agent-specific insights */}
       {agentInsights.length > 0 && (
         <div>
@@ -1247,7 +1246,7 @@ function AnalysisContent({
           </div>
         </div>
       )}
-      
+
       {/* Global/Shared insights */}
       {sharedInsights.length > 0 && (
         <div>
@@ -1300,7 +1299,7 @@ function AnalysisContent({
           </div>
         </div>
       )}
-      
+
       {agentInsights.length === 0 && sharedInsights.length === 0 && (
         <div className="flex items-center justify-center h-full" style={{ color: "var(--muted-text)" }}>
           <div className="text-xs text-center">

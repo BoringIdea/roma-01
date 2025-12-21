@@ -19,7 +19,7 @@ export function PromptsSection({
 }: PromptsSectionProps) {
   return (
     <section
-      className="rounded-xl border p-5"
+      className="rounded-md border p-5"
       style={{ borderColor: "var(--panel-border)", background: "var(--panel-bg)" }}
     >
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
