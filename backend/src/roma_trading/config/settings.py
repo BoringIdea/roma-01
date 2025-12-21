@@ -66,6 +66,17 @@ class Settings(BaseSettings):
 
     # Database
     database_url: str = "sqlite+aiosqlite:///./data/roma_trading.db"
+    database_pool_size: int = 5
+    database_max_overflow: int = 10
+    database_pool_timeout: float = 30.0
+    database_pool_recycle: int = 1800
+
+    # Trade execution controls
+    max_concurrent_trades: int = 2
+    trade_execution_timeout_seconds: float = 300.0
+
+    # LLM concurrency controls
+    llm_max_concurrent_requests: int = 4
 
     # API Configuration
     api_host: str = "0.0.0.0"
@@ -90,4 +101,3 @@ class Settings(BaseSettings):
 def get_settings() -> Settings:
     """Get cached settings instance."""
     return Settings()
-

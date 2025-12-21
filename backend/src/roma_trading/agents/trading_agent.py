@@ -18,6 +18,8 @@ from loguru import logger
 from roma_trading.toolkits import AsterToolkit, TechnicalAnalysisToolkit
 from roma_trading.core import DecisionLogger, PerformanceAnalyzer
 from roma_trading.prompts import render_prompt
+from roma_trading.services.trade_execution_service import TradeExecutionService
+from roma_trading.services.llm_client_factory import LLMClientFactory
 
 # Import HyperliquidToolkit if available
 try:
@@ -58,7 +60,14 @@ class TradingAgent:
     - Performance tracking
     """
 
-    def __init__(self, agent_id: str, config: Dict, trading_lock: asyncio.Lock = None):
+    def __init__(
+        self,
+        agent_id: str,
+        config: Dict,
+        trading_lock: asyncio.Lock = None,
+        execution_service: Optional[TradeExecutionService] = None,
+        llm_factory: Optional[LLMClientFactory] = None,
+    ):
         """
         Initialize trading agent.
         
@@ -66,10 +75,12 @@ class TradingAgent:
             agent_id: Unique agent identifier
             config: Agent configuration dict
             trading_lock: Shared lock to prevent concurrent trading
+            execution_service: Centralized execution throttler
         """
         self.agent_id = agent_id
         self.config = config
         self.trading_lock = trading_lock or asyncio.Lock()  # Use shared or create own
+        self.execution_service = execution_service or TradeExecutionService()
         
         # Initialize DEX toolkit based on exchange.type
         exchange_cfg = config.get("exchange", {})
@@ -115,7 +126,9 @@ class TradingAgent:
         self.advanced_orders = self.config["strategy"].get("advanced_orders", {})
         
         # Initialize DSPy LLM and decision module
-        self.lm = self._init_llm()
+        self.llm_factory = llm_factory or LLMClientFactory()
+        self.llm_provider = (self.config["llm"].get("provider") or "custom").lower()
+        self.lm = self.llm_factory.create_client(self.config["llm"])
         self.decision_module = dspy.ChainOfThought(TradingDecision)
         
         # Trading state - restore cycle count from previous logs
@@ -127,85 +140,6 @@ class TradingAgent:
             logger.info(f"Initialized TradingAgent: {agent_id} ({config['agent']['name']}) - Resuming from cycle #{self.cycle_count}")
         else:
             logger.info(f"Initialized TradingAgent: {agent_id} ({config['agent']['name']}) - Starting fresh")
-
-    def _init_llm(self):
-        """Initialize DSPy LLM based on configuration."""
-        llm_config = self.config["llm"]
-        provider = llm_config["provider"]
-        model = llm_config.get("model", "")
-        
-        if provider == "deepseek":
-            # DeepSeek API
-            lm = dspy.LM(
-                f"deepseek/{model}" if model else "deepseek/deepseek-chat",
-                api_key=llm_config["api_key"],
-                temperature=llm_config.get("temperature", 0.15),
-                max_tokens=llm_config.get("max_tokens", 4000),
-            )
-        elif provider == "qwen":
-            # Qwen API (Alibaba Cloud DashScope)
-            # Support different regions: china uses dashscope.aliyuncs.com, others use dashscope-intl.aliyuncs.com
-            model_name = model if model else "qwen-max"
-            location = llm_config.get("location", "china").lower()
-            if location == "china":
-                api_base = "https://dashscope.aliyuncs.com/compatible-mode/v1"
-            else:
-                api_base = "https://dashscope-intl.aliyuncs.com/compatible-mode/v1"
-            
-            # Use "dashscope/" prefix for DashScope models
-            lm = dspy.LM(
-                f"dashscope/{model_name}",
-                api_base=api_base,
-                api_key=llm_config["api_key"],
-                temperature=llm_config.get("temperature", 0.15),
-                max_tokens=llm_config.get("max_tokens", 4000),
-            )
-        elif provider == "anthropic":
-            # Anthropic Claude API
-            lm = dspy.LM(
-                f"anthropic/{model}" if model else "anthropic/claude-sonnet-4.5",
-                api_key=llm_config["api_key"],
-                temperature=llm_config.get("temperature", 0.15),
-                max_tokens=llm_config.get("max_tokens", 4000),
-            )
-        elif provider == "xai":
-            # xAI Grok API
-            lm = dspy.LM(
-                f"xai/{model}" if model else "xai/grok-4",
-                api_key=llm_config["api_key"],
-                temperature=llm_config.get("temperature", 0.15),
-                max_tokens=llm_config.get("max_tokens", 4000),
-            )
-        elif provider == "google":
-            # Google Gemini API
-            lm = dspy.LM(
-                f"gemini/{model}" if model else "gemini/gemini-2.5-pro",
-                api_key=llm_config["api_key"],
-                temperature=llm_config.get("temperature", 0.15),
-                max_tokens=llm_config.get("max_tokens", 4000),
-            )
-        elif provider == "openai":
-            # OpenAI GPT API
-            lm = dspy.LM(
-                f"openai/{model}" if model else "openai/gpt-5",
-                api_key=llm_config["api_key"],
-                temperature=llm_config.get("temperature", 0.15),
-                max_tokens=llm_config.get("max_tokens", 4000),
-            )
-        elif provider == "custom":
-            # Custom LLM endpoint
-            lm = dspy.LM(
-                model=llm_config["model"],
-                api_base=llm_config.get("base_url"),
-                api_key=llm_config["api_key"],
-                temperature=llm_config.get("temperature", 0.15),
-                max_tokens=llm_config.get("max_tokens", 4000),
-            )
-        else:
-            raise ValueError(f"Unsupported LLM provider: {provider}")
-        
-        logger.info(f"Initialized DSPy LM for provider '{provider}'")
-        return lm
 
     async def start(self):
         """Start the trading loop."""
@@ -239,78 +173,79 @@ class TradingAgent:
         
         # Acquire trading lock to prevent concurrent trading
         # This ensures only one agent trades at a time
-        async with self.trading_lock:
-            logger.debug(f"🔒 {self.agent_id} acquired trading lock")
-            
-            # 1. Clean up any stale orders first (free up margin)
-            logger.debug("Checking for stale orders to cancel...")
-            for symbol in self.config["strategy"]["default_coins"]:
-                try:
-                    await self.dex._cancel_all_orders(symbol)
-                except Exception as e:
-                    logger.debug(f"No orders to cancel for {symbol}: {e}")
-            
-            # 2. Fetch account and positions
-            account = await self.dex.get_account_balance()
-            positions = await self.dex.get_positions()
-            
-            # Calculate this agent's budget
-            max_usage_pct = self.config["strategy"].get("max_account_usage_pct", 100)
-            agent_budget = account['available_balance'] * (max_usage_pct / 100)
-            
-            logger.info(
-                f"Account: Total=${account['total_wallet_balance']:.2f}, "
-                f"Available=${account['available_balance']:.2f}, "
-                f"Agent Budget=${agent_budget:.2f} ({max_usage_pct}%), "
-                f"Positions: {len(positions)}"
-            )
-            
-            # 3. Fetch market data
-            market_data = await self._fetch_market_data(positions)
-            
-            # 4. Get performance metrics
-            trades = self.logger_module.get_trade_history()
-            performance_metrics = self.performance.calculate_metrics(trades)
-            
-            # 5. Build prompts
-            prompt_language = self._resolve_prompt_language()
-            system_prompt = self._build_system_prompt(language=prompt_language)
-            market_context = self._build_market_context(
-                account,
-                positions,
-                market_data,
-                performance_metrics,
-                language=prompt_language,
-            )
-            
-            # 6. AI Decision
-            logger.info("Calling AI for decision...")
-            result = await asyncio.to_thread(
-                self._run_decision_module,
-                system_prompt,
-                market_context,
-            )
-            
-            # 7. Parse and execute decisions
-            decisions = self._parse_decisions(result.decisions_json)
-            
-            logger.info(f"AI Decision: {len(decisions)} actions")
-            logger.debug(f"Chain of Thought:\n{result.chain_of_thought}")
-            
-            await self._execute_decisions(decisions)
-            
-            # 8. Log everything
-            self.logger_module.log_decision(
-                cycle=self.cycle_count,
-                chain_of_thought=result.chain_of_thought,
-                decisions=decisions,
-                account=account,
-                positions=positions,
-            )
+        async with self.execution_service.guard(self.agent_id):
+            async with self.trading_lock:
+                logger.debug(f"🔒 {self.agent_id} acquired trading lock")
 
-            self.last_account_snapshot = dict(account)
-            
-            logger.debug(f"🔓 {self.agent_id} released trading lock")
+                # 1. Clean up any stale orders first (free up margin)
+                logger.debug("Checking for stale orders to cancel...")
+                for symbol in self.config["strategy"]["default_coins"]:
+                    try:
+                        await self.dex._cancel_all_orders(symbol)
+                    except Exception as e:
+                        logger.debug(f"No orders to cancel for {symbol}: {e}")
+
+                # 2. Fetch account and positions
+                account = await self.dex.get_account_balance()
+                positions = await self.dex.get_positions()
+
+                # Calculate this agent's budget
+                max_usage_pct = self.config["strategy"].get("max_account_usage_pct", 100)
+                agent_budget = account['available_balance'] * (max_usage_pct / 100)
+
+                logger.info(
+                    f"Account: Total=${account['total_wallet_balance']:.2f}, "
+                    f"Available=${account['available_balance']:.2f}, "
+                    f"Agent Budget=${agent_budget:.2f} ({max_usage_pct}%), "
+                    f"Positions: {len(positions)}"
+                )
+
+                # 3. Fetch market data
+                market_data = await self._fetch_market_data(positions)
+
+                # 4. Get performance metrics
+                trades = self.logger_module.get_trade_history()
+                performance_metrics = self.performance.calculate_metrics(trades)
+
+                # 5. Build prompts
+                prompt_language = self._resolve_prompt_language()
+                system_prompt = self._build_system_prompt(language=prompt_language)
+                market_context = self._build_market_context(
+                    account,
+                    positions,
+                    market_data,
+                    performance_metrics,
+                    language=prompt_language,
+                )
+
+                # 6. AI Decision
+                logger.info("Calling AI for decision...")
+                async with self.llm_factory.request_slot(self.llm_provider):
+                    result = await asyncio.to_thread(
+                        self._run_decision_module,
+                        system_prompt,
+                        market_context,
+                    )
+                # 7. Parse and execute decisions
+                decisions = self._parse_decisions(result.decisions_json)
+
+                logger.info(f"AI Decision: {len(decisions)} actions")
+                logger.debug(f"Chain of Thought:\n{result.chain_of_thought}")
+
+                await self._execute_decisions(decisions)
+
+                # 8. Log everything
+                self.logger_module.log_decision(
+                    cycle=self.cycle_count,
+                    chain_of_thought=result.chain_of_thought,
+                    decisions=decisions,
+                    account=account,
+                    positions=positions,
+                )
+
+                self.last_account_snapshot = dict(account)
+
+                logger.debug(f"🔓 {self.agent_id} released trading lock")
         
         logger.info(f"Cycle #{self.cycle_count} complete\n")
 
@@ -1117,4 +1052,3 @@ class TradingAgent:
             if "initial_balance" not in snapshot:
                 snapshot["initial_balance"] = self.config.get("strategy", {}).get("initial_balance", 10000.0)
         return snapshot
-

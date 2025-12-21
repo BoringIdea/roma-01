@@ -9,10 +9,11 @@ from datetime import datetime, timedelta
 from typing import Optional, Dict
 from loguru import logger
 
+from roma_trading.services.base_service import BaseService
 from .trade_history_analyzer import TradeHistoryAnalyzer
 
 
-class AnalysisScheduler:
+class AnalysisScheduler(BaseService):
     """Schedules and manages periodic analysis jobs."""
     
     def __init__(
@@ -28,12 +29,13 @@ class AnalysisScheduler:
         self.interval_hours = interval_hours
         self.analysis_period_days = analysis_period_days
         self.min_trades_required = min_trades_required
-        
+
+        super().__init__()
         self._running = False
         self._task: Optional[asyncio.Task] = None
         self._last_analysis: Dict[str, datetime] = {}  # agent_id -> last_analysis_time
     
-    async def start(self, run_immediately: bool = True, initial_delay_seconds: int = 30):
+    async def _start(self, run_immediately: bool = True, initial_delay_seconds: int = 30):
         """
         Start the scheduler.
         
@@ -69,7 +71,7 @@ class AnalysisScheduler:
         self._task = asyncio.create_task(self._schedule_loop())
         logger.info(f"Analysis scheduler started (interval: {self.interval_hours} hours)")
     
-    async def stop(self):
+    async def _stop(self):
         """Stop the scheduler."""
         self._running = False
         if self._task:
@@ -177,4 +179,3 @@ class AnalysisScheduler:
             f"Analysis scheduler config updated: "
             f"enabled={self.enabled}, interval={self.interval_hours}h"
         )
-
