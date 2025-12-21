@@ -47,11 +47,8 @@ class AnalysisScheduler(BaseService):
             logger.info("Analysis scheduler is disabled")
             return
         
-        if self._running:
-            logger.warning("Analysis scheduler is already running")
-            return
-        
-        self._running = True
+        # Note: _running is already set to True by BaseService.start() before calling _start()
+        # So we don't need to check or set it here
         
         # Run immediate analysis if requested
         if run_immediately:
