@@ -9,9 +9,12 @@ import TokenRankings from "./components/TokenRankings";
 
 type DexFilter = "all" | "aster" | "hyperliquid";
 
+import DashboardTabs, { DashboardTab } from "./components/DashboardTabs";
+
 function DashboardContent() {
   const searchParams = useSearchParams();
   const [dexFilter, setDexFilter] = useState<DexFilter>("all");
+  const [activeTab, setActiveTab] = useState<DashboardTab>("leaderboard");
 
   useEffect(() => {
     const dex = searchParams.get("dex");
@@ -23,14 +26,23 @@ function DashboardContent() {
   }, [searchParams]);
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <div className="container mx-auto p-6">
       <DashboardHeader dexFilter={dexFilter} />
 
-      <HyperliquidLeaderboard dexFilter={dexFilter} />
+      <div className="mt-6">
+        <DashboardTabs activeTab={activeTab} onChange={setActiveTab} />
 
-      <div className="flex flex-col gap-6">
-        <LargeTradeMonitor dexFilter={dexFilter} />
-        <TokenRankings dexFilter={dexFilter} />
+        {activeTab === "leaderboard" && (
+          <HyperliquidLeaderboard dexFilter={dexFilter} />
+        )}
+
+        {activeTab === "large-trades" && (
+          <LargeTradeMonitor dexFilter={dexFilter} />
+        )}
+
+        {activeTab === "token-rankings" && (
+          <TokenRankings dexFilter={dexFilter} />
+        )}
       </div>
     </div>
   );

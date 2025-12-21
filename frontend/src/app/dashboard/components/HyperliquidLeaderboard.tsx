@@ -34,7 +34,7 @@ type SortOrder = "asc" | "desc";
 
 const FETCH_LIMIT = 100;
 
-export default function HyperliquidLeaderboard({ 
+export default function HyperliquidLeaderboard({
   pageSize = 10,
   dexFilter = "all"
 }: HyperliquidLeaderboardProps) {
@@ -164,26 +164,26 @@ export default function HyperliquidLeaderboard({
 
   return (
     <div
-      className="rounded-xl border p-5"
+      className="border p-0"
       style={{
         borderColor: "var(--panel-border)",
         background: "var(--panel-bg)",
       }}
     >
-      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between mb-4">
+      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between p-6 border-b" style={{ borderColor: "var(--panel-border)" }}>
         <div>
-          <h2 className="text-sm font-semibold uppercase tracking-wider">{getTitle()}</h2>
-          <p className="text-xs" style={{ color: "var(--muted-text)" }}>
+          <h2 className="text-sm font-black uppercase tracking-widest">{getTitle()}</h2>
+          <p className="text-[10px] mt-1 font-bold uppercase opacity-40 px-1 border inline-block" style={{ borderColor: "var(--panel-border)" }}>
             {summary}
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-4">
           <select
-            className="rounded border px-2 py-1 text-xs"
+            className="border px-4 py-1 text-[10px] font-bold uppercase tracking-widest"
             style={{
               borderColor: "var(--panel-border)",
-              background: "var(--panel-bg)",
+              background: "transparent",
             }}
             value={window}
             onChange={(e) => {
@@ -200,20 +200,20 @@ export default function HyperliquidLeaderboard({
             ))}
           </select>
 
-          <div className="flex items-center gap-1 text-xs">
+          <div className="flex items-center text-[10px] font-bold uppercase tracking-widest">
             <button
-              className="px-2 py-1 border rounded disabled:opacity-40"
+              className="px-3 py-1 border hover:bg-black hover:text-white transition-colors disabled:opacity-20 translate-x-[1px]"
               style={{ borderColor: "var(--panel-border)" }}
               disabled={!canPrev}
               onClick={() => setPage((p) => Math.max(0, p - 1))}
             >
               {language === "zh" ? "上一页" : "Prev"}
             </button>
-            <span>
+            <span className="px-3 py-1 border relative z-10 bg-white" style={{ borderColor: "var(--panel-border)" }}>
               {page + 1}/{totalPages || 1}
             </span>
             <button
-              className="px-2 py-1 border rounded disabled:opacity-40"
+              className="px-3 py-1 border hover:bg-black hover:text-white transition-colors disabled:opacity-20 -translate-x-[1px]"
               style={{ borderColor: "var(--panel-border)" }}
               disabled={!canNext}
               onClick={() => setPage((p) => (canNext ? p + 1 : p))}
@@ -225,23 +225,23 @@ export default function HyperliquidLeaderboard({
       </div>
 
       {isLoading ? (
-        <div className="text-center py-8">Loading...</div>
+        <div className="text-center py-12 text-xs font-bold uppercase tracking-widest opacity-30">Loading...</div>
       ) : rows.length === 0 ? (
-        <div className="text-center py-8" style={{ color: "var(--muted-text)" }}>
+        <div className="text-center py-12 text-xs font-bold uppercase tracking-widest opacity-30" style={{ color: "var(--muted-text)" }}>
           {language === "zh" ? "暂无数据" : "No data available"}
         </div>
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
             <thead>
-              <tr style={{ borderBottomColor: "var(--panel-border)" }}>
-                <th className="text-left py-2 w-12">#</th>
-                <th className="text-left py-2">{language === "zh" ? "交易者" : "Trader"}</th>
+              <tr className="border-b" style={{ borderColor: "var(--panel-border)" }}>
+                <th className="text-left py-4 px-6 font-bold uppercase tracking-widest w-16">#</th>
+                <th className="text-left py-4 px-6 font-bold uppercase tracking-widest">{language === "zh" ? "交易者" : "Trader"}</th>
                 {showAccountValueAndROI && (
-                  <th className="text-right py-2">{language === "zh" ? "账户金额" : "Account Value"}</th>
+                  <th className="text-right py-4 px-6 font-bold uppercase tracking-widest">{language === "zh" ? "规模" : "Value"}</th>
                 )}
                 <th
-                  className="text-right py-2 cursor-pointer hover:opacity-80"
+                  className="text-right py-4 px-6 font-bold uppercase tracking-widest cursor-pointer hover:bg-black hover:text-white transition-colors"
                   onClick={() => handleSort("pnl")}
                 >
                   {language === "zh" ? "盈亏" : "PNL"}
@@ -249,7 +249,7 @@ export default function HyperliquidLeaderboard({
                 </th>
                 {showAccountValueAndROI && (
                   <th
-                    className="text-right py-2 cursor-pointer hover:opacity-80"
+                    className="text-right py-4 px-6 font-bold uppercase tracking-widest cursor-pointer hover:bg-black hover:text-white transition-colors"
                     onClick={() => handleSort("roi")}
                   >
                     {language === "zh" ? "收益率" : "ROI"}
@@ -257,7 +257,7 @@ export default function HyperliquidLeaderboard({
                   </th>
                 )}
                 <th
-                  className="text-right py-2 cursor-pointer hover:opacity-80"
+                  className="text-right py-4 px-6 font-bold uppercase tracking-widest cursor-pointer hover:bg-black hover:text-white transition-colors"
                   onClick={() => handleSort("volume")}
                 >
                   {language === "zh" ? "成交量" : "Volume"}
@@ -267,35 +267,47 @@ export default function HyperliquidLeaderboard({
             </thead>
             <tbody>
               {rows.map((row: LeaderboardRow, index: number) => {
-                // Display rank based on sorted position
                 const displayRank = sortField ? page * pageSize + index + 1 : row.rank;
                 return (
-                <tr key={`${row.address}-${row.rank}`} style={{ borderBottomColor: "var(--panel-border)" }}>
-                  <td className="py-2 font-semibold">{displayRank}</td>
-                  <td className="py-2">
-                    <div className="flex flex-col">
-                      <span>{addressDisplay(row)}</span>
-                      <span className="text-[10px]" style={{ color: "var(--muted-text)" }}>
-                        {row.address}
-                        {row.dex && dexFilter === "all" && (
-                          <span className="ml-1 opacity-60">({row.dex})</span>
-                        )}
-                      </span>
-                    </div>
-                  </td>
-                  {showAccountValueAndROI && (
-                    <td className="py-2 text-right font-semibold">{formatUsd(row.account_value)}</td>
-                  )}
-                  <td className="py-2 text-right" style={{ color: row.pnl >= 0 ? "#10b981" : "#ef4444" }}>
-                    {formatUsd(row.pnl)}
-                  </td>
-                  {showAccountValueAndROI && (
-                    <td className="py-2 text-right" style={{ color: row.roi >= 0 ? "#10b981" : "#ef4444" }}>
-                      {formatRoi(row.roi)}
+                  <tr
+                    key={`${row.address}-${row.rank}`}
+                    className="border-b last:border-b-0 hover:bg-neutral-50 transition-colors font-mono tabular-nums"
+                    style={{ borderColor: "var(--panel-border)" }}
+                  >
+                    <td className="py-4 px-6 font-black italic">{displayRank}</td>
+                    <td className="py-4 px-6">
+                      <div className="flex flex-col">
+                        <span className="font-bold">{addressDisplay(row)}</span>
+                        <span className="text-[10px] opacity-40 font-mono tracking-tight">
+                          {row.address}
+                          {row.dex && dexFilter === "all" && (
+                            <span className="ml-1">[{row.dex}]</span>
+                          )}
+                        </span>
+                      </div>
                     </td>
-                  )}
-                  <td className="py-2 text-right">{formatUsd(row.volume)}</td>
-                </tr>
+                    {showAccountValueAndROI && (
+                      <td className="py-4 px-6 text-right">{formatUsd(row.account_value)}</td>
+                    )}
+                    <td className="py-4 px-6 text-right">
+                      <span
+                        className="font-black italic px-2 py-0.5 border text-[9px] tracking-tighter inline-block"
+                        style={{
+                          borderColor: row.pnl >= 0 ? "#22c55e" : "#ef4444",
+                          color: row.pnl >= 0 ? "#22c55e" : "#ef4444",
+                          background: row.pnl >= 0 ? "rgba(34, 197, 94, 0.05)" : "rgba(239, 68, 68, 0.05)",
+                        }}
+                      >
+                        {formatUsd(row.pnl)}
+                      </span>
+                    </td>
+                    {showAccountValueAndROI && (
+                      <td className="py-4 px-6 text-right font-bold" style={{ color: row.roi >= 0 ? "#22c55e" : "#ef4444" }}>
+                        {formatRoi(row.roi)}
+                      </td>
+                    )}
+                    <td className="py-4 px-6 text-right opacity-60">{formatUsd(row.volume)}</td>
+                  </tr>
                 );
               })}
             </tbody>

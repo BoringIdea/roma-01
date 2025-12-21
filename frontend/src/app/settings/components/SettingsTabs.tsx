@@ -16,7 +16,7 @@ interface SettingsTabsProps {
 export function SettingsTabs({ activeTab, tabs, onChange }: SettingsTabsProps) {
   return (
     <nav
-      className="flex flex-wrap gap-2 rounded-xl border p-2 text-[11px] uppercase tracking-[0.25em]"
+      className="flex flex-wrap gap-2 rounded-md border p-2 text-[11px] uppercase tracking-[0.25em]"
       style={{ borderColor: "var(--panel-border)", background: "var(--panel-bg)" }}
     >
       {tabs.map((tab) => {
