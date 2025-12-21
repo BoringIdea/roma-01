@@ -15,6 +15,11 @@ from pathlib import Path
 import yaml
 from loguru import logger
 
+from roma_trading.config import get_settings
+from roma_trading.services.trade_execution_service import TradeExecutionService
+from roma_trading.services.llm_client_factory import LLMClientFactory
+from roma_trading.agents.scheduler import AgentScheduler
+
 from .trading_agent import TradingAgent
 
 # Mapping of various model identifiers to canonical frontend IDs
@@ -107,8 +112,17 @@ class AgentManager:
         # Global trading lock to prevent concurrent trading
         # This ensures only one agent can execute trades at a time
         self.trading_lock = asyncio.Lock()
-        
-        logger.info("Initialized AgentManager with trading lock")
+
+        settings = get_settings()
+        self.execution_service = TradeExecutionService(
+            max_concurrent_trades=settings.max_concurrent_trades,
+            timeout_seconds=settings.trade_execution_timeout_seconds,
+        )
+        self.llm_factory = LLMClientFactory(settings.llm_max_concurrent_requests)
+
+        self.scheduler: Optional[AgentScheduler] = None
+
+        logger.info("Initialized AgentManager with trading lock and execution service")
 
     async def load_agents_from_config(self, config_path: str = "config/trading_config.yaml"):
         """
@@ -123,6 +137,11 @@ class AgentManager:
         """
         # Remember config path for reloads
         self.config_path = config_path
+
+        # Reload scheduler if configured
+        if self.scheduler:
+            await self.scheduler.stop()
+            self.scheduler = None
 
         # Load main config
         with open(config_path, "r") as f:
@@ -156,6 +175,8 @@ class AgentManager:
                     agent_id=agent_spec["id"],
                     config=agent_config,
                     trading_lock=self.trading_lock,
+                    execution_service=self.execution_service,
+                    llm_factory=self.llm_factory,
                 )
                 self.agents[agent_spec["id"]] = agent
                 logger.info(f"Loaded agent (legacy): {agent_spec['id']} ({agent_spec.get('name','')})")
@@ -317,11 +338,15 @@ class AgentManager:
                 agent_id=agent_spec.get("id"),
                 config=agent_config,
                 trading_lock=self.trading_lock,
+                execution_service=self.execution_service,
+                llm_factory=self.llm_factory,
             )
             self.agents[agent_spec.get("id")] = agent
             logger.info(f"Loaded agent (account-centric): {agent_spec.get('id')} ({agent_spec.get('name','')})")
 
         logger.info(f"Loaded {len(self.agents)} agents")
+
+        self.scheduler = AgentScheduler()
 
     def _resolve_env_vars(self, config: dict):
         """Resolve ${ENV_VAR} placeholders in config."""
@@ -346,16 +371,18 @@ class AgentManager:
             config[key] = resolve_value(value)
 
     async def start_all(self):
-        """Start all agents in parallel."""
-        for agent_id, agent in self.agents.items():
-            task = asyncio.create_task(agent.start())
-            self.tasks[agent_id] = task
-            logger.info(f"Started agent: {agent_id}")
-        
-        logger.info(f"All {len(self.agents)} agents running")
+        """Start the scheduler that drives agent workers."""
+        if not self.scheduler:
+            self.scheduler = AgentScheduler()
+
+        await self.scheduler.start(self.agents)
+        logger.info("Agent scheduler started for %d agents", len(self.agents))
 
     async def stop_all(self):
         """Stop all agents."""
+        if self.scheduler:
+            await self.scheduler.stop()
+
         for agent_id, agent in self.agents.items():
             await agent.stop()
             if agent_id in self.tasks:
@@ -416,4 +443,3 @@ class AgentManager:
                 "model_provider": model_provider,
             })
         return result
-

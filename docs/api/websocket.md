@@ -30,6 +30,45 @@ Connect to a specific agent for real-time updates.
 
 ## 📡 Message Types
 
+The current server implementation emits a compact stream with the following
+message types to keep the connection alive during long AI decision intervals:
+`update`, `error`, and `keepalive`.
+
+### Core Stream Messages
+
+**Update**
+```json
+{
+  "type": "update",
+  "timestamp": 1734790000.123,
+  "account": { "...": "..." },
+  "positions": [],
+  "performance": { "...": "..." },
+  "status": { "...": "..." }
+}
+```
+
+**Error**
+```json
+{
+  "type": "error",
+  "timestamp": 1734790005.456,
+  "message": "Failed to fetch positions"
+}
+```
+
+**Keepalive**
+```json
+{
+  "type": "keepalive",
+  "timestamp": 1734790005.789,
+  "status": { "...": "..." }
+}
+```
+
+Legacy event-specific message types are kept below for reference, but may not
+be emitted by the server.
+
 ### 1. Account Update
 
 Sent when account balance changes.
@@ -403,4 +442,3 @@ const ws = new WebSocket('wss://api.example.com/ws/agents/agent-id?token=YOUR_TO
 
 **Last Updated**: November 2, 2025  
 **Version**: 1.1.0
-

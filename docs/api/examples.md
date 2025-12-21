@@ -165,9 +165,13 @@ for (const agent of agents) {
 
 ```typescript
 interface WebSocketMessage {
-  type: string;
-  timestamp: string;
-  data: any;
+  type: 'update' | 'error' | 'keepalive';
+  timestamp: number;
+  account?: any;
+  positions?: any[];
+  performance?: any;
+  status?: any;
+  message?: string;
 }
 
 class AgentMonitor {
@@ -204,14 +208,14 @@ class AgentMonitor {
   
   private handleMessage(message: WebSocketMessage) {
     switch (message.type) {
-      case 'account_update':
-        this.onAccountUpdate?.(message.data);
+      case 'update':
+        this.onUpdate?.(message);
         break;
-      case 'position_update':
-        this.onPositionUpdate?.(message.data);
+      case 'error':
+        this.onError?.(message.message ?? 'Unknown WebSocket error');
         break;
-      case 'decision':
-        this.onDecision?.(message.data);
+      case 'keepalive':
+        this.onKeepalive?.(message.status);
         break;
     }
   }
@@ -225,9 +229,9 @@ class AgentMonitor {
   }
   
   // Event handlers (set these from outside)
-  onAccountUpdate?: (data: any) => void;
-  onPositionUpdate?: (data: any) => void;
-  onDecision?: (data: any) => void;
+  onUpdate?: (data: WebSocketMessage) => void;
+  onError?: (message: string) => void;
+  onKeepalive?: (status: any) => void;
   
   disconnect() {
     this.ws?.close();
@@ -765,4 +769,3 @@ if (account) {
 
 **Last Updated**: November 2, 2025  
 **Version**: 1.1.0
-

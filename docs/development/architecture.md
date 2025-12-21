@@ -1073,46 +1073,36 @@ GET  /api/market/prices?symbols=BTCUSDT,ETHUSDT  - Get current prices
 **Message Types**:
 
 ```typescript
-// Server → Client: Agent update
+// Server → Client: Update snapshot
 {
-  "type": "agent_update",
-  "data": {
-    "agent_id": string,
-    "timestamp": string,
-    "account": AccountInfo,
-    "positions": Position[],
-    "performance": PerformanceMetrics
-  }
+  "type": "update",
+  "timestamp": number,
+  "account": AccountInfo,
+  "positions": Position[],
+  "performance": PerformanceMetrics,
+  "status": AgentStatus
 }
 
-// Server → Client: New decision
+// Server → Client: Error payload
 {
-  "type": "new_decision",
-  "data": DecisionLog
+  "type": "error",
+  "timestamp": number,
+  "message": string
 }
 
-// Server → Client: Position update
+// Server → Client: Keepalive (emitted after each cycle)
 {
-  "type": "position_update",
-  "data": {
-    "symbol": string,
-    "action": "opened" | "closed" | "modified",
-    "position": Position
-  }
-}
-
-// Client → Server: Subscribe
-{
-  "action": "subscribe",
-  "agent_id": string
-}
-
-// Client → Server: Unsubscribe
-{
-  "action": "unsubscribe",
-  "agent_id": string
+  "type": "keepalive",
+  "timestamp": number,
+  "status": AgentStatus
 }
 ```
+
+### 4.2.1 Service Lifecycle
+
+Background services (e.g., `LargeTradeStreamer`, `AnalysisScheduler`) implement
+`BaseService` and are started/stopped via `ServiceManager` to reduce mid-run
+exits that can interrupt data streams.
 
 ### 4.3 Aster Finance API Integration
 
