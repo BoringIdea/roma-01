@@ -1182,21 +1182,9 @@ class TradeHistoryAnalyzer:
     async def _save_jobs_async(self) -> None:
         """Save jobs asynchronously."""
         for job in self.jobs.values():
-            # Check if job exists
-            existing_jobs = await self.job_storage.get_jobs(limit=1000)
-            existing_ids = {j.job_id for j in existing_jobs}
-            
-            if job.job_id not in existing_ids:
-                await self.job_storage.create_job(job)
-            else:
-                # Update job
-                updates = {
-                    "status": job.status,
-                    "started_at": job.started_at,
-                    "completed_at": job.completed_at,
-                    "error_message": job.error_message,
-                }
-                await self.job_storage.update_job(job.job_id, updates)
+            # create_job method now handles existence check internally
+            # It will update if exists, create if not exists
+            await self.job_storage.create_job(job)
     
     async def run_analysis(
         self,
