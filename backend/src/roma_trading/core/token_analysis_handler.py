@@ -148,13 +148,13 @@ class TokenAnalysisHandler:
         
         Args:
             symbol: Token symbol (e.g., "BTCUSDT")
-            timeframes: List of timeframes to analyze (default: ["3m", "1h", "4h"])
+            timeframes: List of timeframes to analyze (default: ["15m", "1h", "4h"])
             
         Returns:
             Dictionary with market data and technical analysis
         """
         if timeframes is None:
-            timeframes = ["3m", "1h", "4h"]
+            timeframes = ["15m", "1h", "4h"]
         
         # Get any agent to access DEX
         agents = self.agent_manager.get_all_agents()
@@ -194,10 +194,57 @@ class TokenAnalysisHandler:
                 logger.error(f"Failed to fetch {timeframe} data for {symbol}: {e}")
                 analysis_data[timeframe] = None
         
+        # Fetch additional market data (funding rate, 24h stats, etc.)
+        market_metadata = {}
+        
+        try:
+            # Try to get funding rate (Aster)
+            if hasattr(dex, 'get_premium_index'):
+                try:
+                    premium_data = await dex.get_premium_index(symbol)
+                    if premium_data and isinstance(premium_data, list) and len(premium_data) > 0:
+                        data = premium_data[0] if isinstance(premium_data[0], dict) else premium_data
+                        market_metadata['funding_rate'] = float(data.get('lastFundingRate', 0)) * 100  # Convert to percentage
+                        market_metadata['next_funding_time'] = data.get('nextFundingTime', 0)
+                except Exception as e:
+                    logger.debug(f"Could not fetch funding rate from premium_index: {e}")
+            
+            # Try to get funding rate (Hyperliquid)
+            if hasattr(dex, 'get_meta_and_asset_ctxs'):
+                try:
+                    meta, asset_ctxs = await dex.get_meta_and_asset_ctxs()
+                    # Find the asset context for this symbol
+                    normalized_symbol = symbol.replace("USDT", "")
+                    for ctx in asset_ctxs:
+                        coin_name = ctx.get('coin', '')
+                        if coin_name == normalized_symbol or coin_name == symbol:
+                            funding_rate = ctx.get('funding', 0)
+                            if funding_rate:
+                                market_metadata['funding_rate'] = float(funding_rate) * 100  # Convert to percentage
+                            break
+                except Exception as e:
+                    logger.debug(f"Could not fetch funding rate from meta_and_asset_ctxs: {e}")
+            
+            # Try to get 24h ticker stats (Aster)
+            if hasattr(dex, 'get_ticker_24hr'):
+                try:
+                    ticker_data = await dex.get_ticker_24hr(symbol)
+                    if ticker_data and isinstance(ticker_data, list) and len(ticker_data) > 0:
+                        data = ticker_data[0] if isinstance(ticker_data[0], dict) else ticker_data
+                        market_metadata['price_change_24h'] = float(data.get('priceChangePercent', 0))
+                        market_metadata['volume_24h'] = float(data.get('volume', 0))
+                        market_metadata['high_24h'] = float(data.get('highPrice', 0))
+                        market_metadata['low_24h'] = float(data.get('lowPrice', 0))
+                except Exception as e:
+                    logger.debug(f"Could not fetch 24h ticker stats: {e}")
+        except Exception as e:
+            logger.debug(f"Failed to fetch additional market metadata: {e}")
+        
         return {
             "symbol": symbol,
             "current_price": current_price,
-            "analysis": analysis_data
+            "analysis": analysis_data,
+            "market_metadata": market_metadata
         }
     
     def format_analysis_prompt(
@@ -218,12 +265,26 @@ class TokenAnalysisHandler:
         symbol = token_data["symbol"]
         current_price = token_data["current_price"]
         analysis = token_data["analysis"]
+        market_metadata = token_data.get("market_metadata", {})
         
         lines = []
         
         if language == "zh":
             lines.append(f"## {symbol} 市场数据分析")
             lines.append(f"\n当前价格: ${current_price:.4f}")
+            
+            # Add market metadata (funding rate, 24h stats)
+            if market_metadata:
+                if market_metadata.get('funding_rate') is not None:
+                    funding_rate = market_metadata['funding_rate']
+                    funding_sentiment = "看涨" if funding_rate > 0.01 else "看跌" if funding_rate < -0.01 else "中性"
+                    lines.append(f"资金费率: {funding_rate:.4f}% ({funding_sentiment})")
+                
+                if market_metadata.get('price_change_24h') is not None:
+                    lines.append(f"24小时涨跌: {market_metadata['price_change_24h']:+.2f}%")
+                
+                if market_metadata.get('volume_24h') is not None and market_metadata['volume_24h'] > 0:
+                    lines.append(f"24小时成交量: ${market_metadata['volume_24h']:,.0f}")
             
             # Add analysis for each timeframe
             for timeframe, data in analysis.items():
@@ -237,6 +298,19 @@ class TokenAnalysisHandler:
         else:
             lines.append(f"## {symbol} Market Data Analysis")
             lines.append(f"\nCurrent Price: ${current_price:.4f}")
+            
+            # Add market metadata (funding rate, 24h stats)
+            if market_metadata:
+                if market_metadata.get('funding_rate') is not None:
+                    funding_rate = market_metadata['funding_rate']
+                    funding_sentiment = "Bullish" if funding_rate > 0.01 else "Bearish" if funding_rate < -0.01 else "Neutral"
+                    lines.append(f"Funding Rate: {funding_rate:.4f}% ({funding_sentiment})")
+                
+                if market_metadata.get('price_change_24h') is not None:
+                    lines.append(f"24h Change: {market_metadata['price_change_24h']:+.2f}%")
+                
+                if market_metadata.get('volume_24h') is not None and market_metadata['volume_24h'] > 0:
+                    lines.append(f"24h Volume: ${market_metadata['volume_24h']:,.0f}")
             
             # Add analysis for each timeframe
             for timeframe, data in analysis.items():
