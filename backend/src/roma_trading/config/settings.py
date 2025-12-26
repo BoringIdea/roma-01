@@ -83,6 +83,38 @@ class Settings(BaseSettings):
     api_port: int = 8080
     cors_origins: str = "http://localhost:3000"
 
+    # x402 Integration
+    x402_enabled: bool = False
+    x402_price_usdc: float = 5.0
+    x402_network: str = "base-sepolia"
+    x402_pay_to_address: Optional[str] = None
+    x402_payment_description: str = "roma-01 strategy recommendation"
+    x402_resource_description: str = "AI-generated trading strategy advice"
+    x402_resource_mime_type: str = "application/json"
+    x402_max_deadline_seconds: int = 120
+    x402_discoverable: bool = True
+    x402_facilitator_url: Optional[str] = None
+    x402_cdp_api_key_id: Optional[str] = None
+    x402_cdp_api_key_secret: Optional[str] = None
+
+    # Strategy advisory configuration
+    strategy_model_id: Optional[str] = None
+    strategy_disclaimer_text: Optional[str] = (
+        "These AI-generated trading suggestions are provided for informational purposes only and do not constitute financial advice."
+    )
+
+    # Remote strategy (Buyer) configuration
+    remote_strategy_enabled: bool = False
+    remote_x402_endpoint: Optional[str] = None
+    remote_x402_network: Optional[str] = None
+    remote_x402_payment_asset: str = "USDC"
+    remote_x402_account: Optional[str] = None
+    remote_x402_private_key: Optional[str] = None
+    remote_x402_price_cap: Optional[float] = None
+    remote_x402_discovery: Optional[str] = None
+    remote_fallback_mode: str = "local"
+    remote_timeout_seconds: int = 10
+    remote_retry_limit: int = 1
     # Config Portal Auth
     config_auth_secret: str = "roma-config-secret"
     config_token_exp_minutes: int = 120
