@@ -5,9 +5,12 @@
 ## Quick Start
 
 **New users**: Start by editing the default configuration:
+
 ```bash
 cd backend/config
 # Edit trading_config.yaml and fill in your accounts/models/agents
+# If trading_config.yaml does not exist yet, it will be auto-generated
+# from trading_config.yaml.example on the first run of backend/start.sh.
 vim trading_config.yaml  # or use your preferred editor
 ```
 

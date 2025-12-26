@@ -1,6 +1,6 @@
 import type { ConfigAgent, PromptLanguage, SystemConfig } from "@/types";
 
-export type SettingsTab = "general" | "accounts" | "models" | "agents" | "prompts";
+export type SettingsTab = "general" | "accounts" | "models" | "agents" | "positions" | "prompts";
 
 export interface AdminFormState {
   username: string;

@@ -55,7 +55,9 @@ docs/
     ├── architecture.md               # System architecture
     ├── requirements.md               # Project requirements
     ├── risk-management.md            # Risk management system
-    └── contributing.md               # Contribution guidelines
+    ├── contributing.md               # Contribution guidelines
+    ├── token-analysis-chat-requirements.md  # Token analysis chat feature requirements
+    └── token-analysis-chat-development.md    # Token analysis chat development guide
 ```
 
 ---
@@ -165,6 +167,16 @@ docs/
 - Pull request process
 - Testing requirements
 
+**[Token Analysis Chat Requirements](development/token-analysis-chat-requirements.md)** (Feature spec)
+- Functional requirements for token analysis chat
+- User stories and success criteria
+- Technical constraints
+
+**[Token Analysis Chat Development](development/token-analysis-chat-development.md)** (Implementation guide)
+- Architecture and design
+- Step-by-step implementation plan
+- Code examples and testing strategy
+
 ---
 
 ## 🎯 Documentation by Role
@@ -248,11 +260,11 @@ tail -f backend/logs/roma_trading_$(date +%Y-%m-%d).log
 
 ## 📊 Documentation Stats
 
-- **Total Documents**: 13 files
+- **Total Documents**: 15 files
 - **User Guide**: 4 files
 - **API Docs**: 3 files
 - **Operations**: 2 files
-- **Development**: 4 files
+- **Development**: 6 files
 - **Total Lines**: ~5,000 lines
 - **Language**: 100% English
 

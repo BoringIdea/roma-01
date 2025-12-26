@@ -8,10 +8,12 @@
  详细说明请参阅 **[README_CONFIG.zh-CN.md](README_CONFIG.zh-CN.md)**。
 
  ## 快速开始
-
- 1. 编辑 `trading_config.yaml`，填写账户 / 模型 / 智能体信息  
- 2. 在 `.env` 文件中设置环境变量  
- 3. 启动平台
+ 
+ 1. 编辑 `trading_config.yaml`，填写账户 / 模型 / 智能体信息。  
+    - 如果 `trading_config.yaml` 不存在，首次运行 `backend/start.sh` 时
+      会自动从 `trading_config.yaml.example` 生成一份默认配置。  
+ 2. 在 `.env` 文件中设置环境变量。  
+ 3. 启动平台。
 
  更详细的操作指南请参考 **[QUICK_START.md](QUICK_START.md)**。
 

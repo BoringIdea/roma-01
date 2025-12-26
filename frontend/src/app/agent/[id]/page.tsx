@@ -27,26 +27,25 @@ export default function AgentDetailPage() {
   });
 
   return (
-    <div 
-      className="w-full terminal-scan px-3 py-3 sm:px-4 sm:py-4 lg:px-8 lg:py-6"
-      style={{ background: "var(--bg)" }}
+    <div
+      className="w-full terminal-scan p-6"
     >
-      <div className="mx-auto w-full max-w-7xl space-y-3">
-        {/* Model Header with brand color */}
-        <div 
-          className="rounded-md border p-4"
+      <div className="mx-auto w-full max-w-7xl space-y-6">
+        {/* Model Header */}
+        <div
+          className="border p-6"
           style={{
-            background: `linear-gradient(0deg, ${color}10, var(--panel-bg))`,
-            borderColor: `${color}55`,
+            borderColor: "var(--panel-border)",
+            background: "var(--panel-bg)",
           }}
         >
-          <div className="flex items-center gap-3">
-            <div 
-              className="w-3 h-3 rounded-full"
+          <div className="flex items-center gap-4">
+            <div
+              className="w-4 h-4"
               style={{ background: color }}
             />
-            <h1 
-              className="text-xl font-bold uppercase tracking-wide terminal-text"
+            <h1
+              className="text-2xl font-black uppercase tracking-tighter italic"
               style={{ color: "var(--foreground)" }}
             >
               {agentName}
@@ -58,9 +57,9 @@ export default function AgentDetailPage() {
         <AgentStatsSummary agentId={id} />
 
         {/* Positions & Trades */}
-        <div className="space-y-3">
+        <div className="space-y-6">
           <div
-            className="rounded-md border p-3"
+            className="border p-6"
             style={{
               background: "var(--panel-bg)",
               borderColor: "var(--panel-border)",
@@ -70,7 +69,7 @@ export default function AgentDetailPage() {
           </div>
 
           <div
-            className="rounded-md border p-3"
+            className="border p-6"
             style={{
               background: "var(--panel-bg)",
               borderColor: "var(--panel-border)",
@@ -81,7 +80,7 @@ export default function AgentDetailPage() {
 
           {/* Decision History */}
           <div
-            className="rounded-md border p-3"
+            className="border p-6"
             style={{
               background: "var(--panel-bg)",
               borderColor: "var(--panel-border)",

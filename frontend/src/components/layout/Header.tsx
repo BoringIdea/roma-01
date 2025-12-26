@@ -14,7 +14,9 @@ export function Header() {
   const t = getTranslation(language);
   
   const [agentsOpen, setAgentsOpen] = useState(false);
+  const [dashboardOpen, setDashboardOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const dashboardDropdownRef = useRef<HTMLDivElement>(null);
 
   // Fetch agents
   const { data: agents } = useSWR("/agents", api.getAgents, {
@@ -23,21 +25,24 @@ export function Header() {
 
   // Close dropdown when clicking outside
   useEffect(() => {
-    if (!agentsOpen) return;
-    
     const handleClickOutside = (e: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+      if (agentsOpen && dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
         setAgentsOpen(false);
+      }
+      if (dashboardOpen && dashboardDropdownRef.current && !dashboardDropdownRef.current.contains(e.target as Node)) {
+        setDashboardOpen(false);
       }
     };
 
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [agentsOpen]);
+    if (agentsOpen || dashboardOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+      return () => document.removeEventListener("mousedown", handleClickOutside);
+    }
+  }, [agentsOpen, dashboardOpen]);
 
   return (
     <header
-      className="sticky top-0 z-50 w-full border-b backdrop-blur"
+      className="fixed top-0 z-50 w-full border-b"
       style={{
         background: "var(--header-bg)",
         borderColor: "var(--header-border)",
@@ -51,9 +56,9 @@ export function Header() {
         <div className="flex min-w-0 flex-1">
           <Link
             href="/"
-            className="text-3xl font-black uppercase hover:opacity-70 transition-transform tracking-[0.4em]"
+            className="text-2xl font-black uppercase hover:opacity-70 transition-transform tracking-tight italic"
             style={{
-              color: "#050505",
+              color: "#000000",
               fontFamily: "var(--font-brand)",
             }}
           >
@@ -61,30 +66,110 @@ export function Header() {
           </Link>
         </div>
 
-            {/* Center: Navigation */}
-            <nav
-              className="absolute left-1/2 -translate-x-1/2 flex items-center gap-6"
-              aria-label="Primary"
+        {/* Center: Navigation */}
+        <nav
+          className="absolute left-1/2 -translate-x-1/2 flex items-center gap-6"
+          aria-label="Primary"
+        >
+          <Link href="/" className="font-bold hover:underline underline-offset-8 px-2 py-1 transition-all uppercase tracking-[0.2em]" style={{ color: "inherit" }}>
+            {t.header.live}
+          </Link>
+
+          <Link href="/leaderboard" className="font-bold hover:underline underline-offset-8 px-2 py-1 transition-all uppercase tracking-[0.2em]" style={{ color: "inherit" }}>
+            {t.header.leaderboard}
+          </Link>
+
+          {/* Dashboard Dropdown */}
+          <div ref={dashboardDropdownRef} className="relative">
+            <button
+              onClick={() => setDashboardOpen(!dashboardOpen)}
+              className="font-bold hover:underline underline-offset-8 px-2 py-1 transition-all flex items-center gap-1 uppercase tracking-[0.2em]"
+              style={{ color: "inherit" }}
             >
-              <Link href="/" className="font-semibold hover:opacity-70 transition-opacity uppercase tracking-wider" style={{ color: "inherit" }}>
-                {t.header.live}
-              </Link>
-              <Link href="/leaderboard" className="font-semibold hover:opacity-70 transition-opacity uppercase tracking-wider" style={{ color: "inherit" }}>
-                {t.header.leaderboard}
-              </Link>
-          
+              {language === "zh" ? "看板" : "Dashboard"}
+              <svg
+                className={`w-3 h-3 transition-transform ${dashboardOpen ? "rotate-180" : ""}`}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+
+            {/* Dropdown Menu */}
+            {dashboardOpen && (
+              <div
+                className="absolute top-full mt-0 min-w-[200px] border shadow-none"
+                style={{
+                  background: "var(--panel-bg)",
+                  borderColor: "var(--panel-border)",
+                  left: "50%",
+                  transform: "translateX(-50%)",
+                }}
+              >
+                <div className="py-1">
+                  <Link
+                    href="/dashboard?dex=aster"
+                    onClick={() => setDashboardOpen(false)}
+                    className="block px-3 py-2 hover:bg-opacity-50 transition-colors"
+                    style={{
+                      color: "var(--foreground)",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = "rgba(59, 130, 246, 0.15)";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = "transparent";
+                    }}
+                  >
+                    <div className="flex items-center gap-2">
+                      <div
+                        className="w-2 h-2"
+                        style={{ background: "#3b82f6" }}
+                      />
+                      <span className="text-[10px] font-bold uppercase tracking-widest">Aster</span>
+                    </div>
+                  </Link>
+                  <Link
+                    href="/dashboard?dex=hyperliquid"
+                    onClick={() => setDashboardOpen(false)}
+                    className="block px-3 py-2 hover:bg-opacity-50 transition-colors"
+                    style={{
+                      color: "var(--foreground)",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = "rgba(139, 92, 246, 0.15)";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = "transparent";
+                    }}
+                  >
+                    <div className="flex items-center gap-2">
+                      <div
+                        className="w-2 h-2"
+                        style={{ background: "#8b5cf6" }}
+                      />
+                      <span className="text-[10px] font-bold uppercase tracking-widest">Hyperliquid</span>
+                    </div>
+                  </Link>
+                </div>
+              </div>
+            )}
+          </div>
+
           {/* Agents Dropdown */}
           <div ref={dropdownRef} className="relative">
             <button
               onClick={() => setAgentsOpen(!agentsOpen)}
-              className="font-semibold hover:opacity-70 transition-opacity flex items-center gap-1 uppercase tracking-wider"
+              className="font-bold hover:underline underline-offset-8 px-2 py-1 transition-all flex items-center gap-1 uppercase tracking-[0.2em]"
               style={{ color: "inherit" }}
             >
               {t.header.agents}
-              <svg 
+              <svg
                 className={`w-3 h-3 transition-transform ${agentsOpen ? "rotate-180" : ""}`}
-                fill="none" 
-                stroke="currentColor" 
+                fill="none"
+                stroke="currentColor"
                 viewBox="0 0 24 24"
               >
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -94,7 +179,7 @@ export function Header() {
             {/* Dropdown Menu */}
             {agentsOpen && agents && agents.length > 0 && (
               <div
-                className="absolute top-full mt-2 min-w-[200px] rounded-md border shadow-lg"
+                className="absolute top-full mt-0 min-w-[200px] border shadow-none"
                 style={{
                   background: "var(--panel-bg)",
                   borderColor: "var(--panel-border)",
@@ -123,24 +208,24 @@ export function Header() {
                       >
                         <div className="flex items-center justify-between gap-3">
                           <div className="flex items-center gap-2">
-                            <div 
-                              className="w-2 h-2 rounded-full"
+                            <div
+                              className="w-2 h-2"
                               style={{ background: color }}
                             />
-                            <span className="text-xs font-medium">
+                            <span className="text-[10px] font-bold uppercase tracking-widest">
                               {agent.name || agent.id}
                             </span>
                           </div>
                           {agent.is_running && (
-                            <span 
-                              className="text-[10px] px-1.5 py-0.5 rounded"
-                              style={{ 
-                                background: "rgba(34, 197, 94, 0.15)",
-                              color: "#22c55e"
-                            }}
-                          >
-                            {t.header.running}
-                          </span>
+                            <span
+                              className="text-[9px] px-1 py-0.5 border"
+                              style={{
+                                borderColor: "#22c55e",
+                                color: "#22c55e"
+                              }}
+                            >
+                              {t.header.running}
+                            </span>
                           )}
                         </div>
                       </Link>
@@ -150,14 +235,14 @@ export function Header() {
               </div>
             )}
           </div>
-          
+
           {/* Settings Link */}
-          <Link href="/settings" className="font-semibold hover:opacity-70 transition-opacity uppercase tracking-wider" style={{ color: "inherit" }}>
+          <Link href="/settings" className="font-bold hover:underline underline-offset-8 px-2 py-1 transition-all uppercase tracking-[0.2em]" style={{ color: "inherit" }}>
             {t.header.settings}
           </Link>
 
           {/* About Link */}
-          <Link href="/about" className="font-semibold hover:opacity-70 transition-opacity uppercase tracking-wider" style={{ color: "inherit" }}>
+          <Link href="/about" className="font-bold hover:underline underline-offset-8 px-2 py-1 transition-all uppercase tracking-[0.2em]" style={{ color: "inherit" }}>
             {t.header.about}
           </Link>
         </nav>
@@ -171,7 +256,7 @@ export function Header() {
               target="_blank"
               rel="noopener noreferrer"
               aria-label="Open GitHub repository"
-              className="inline-flex items-center justify-center w-7 h-7 rounded border chip-btn"
+              className="inline-flex items-center justify-center w-8 h-8 border chip-btn"
               style={{
                 borderColor: "var(--chip-border)",
                 color: "var(--btn-inactive-fg)",
@@ -193,7 +278,7 @@ export function Header() {
             {/* Language Toggle */}
             <div className="flex items-center gap-1 text-[11px]">
               <div
-                className="flex overflow-hidden rounded border"
+                className="flex overflow-hidden border"
                 style={{ borderColor: "var(--chip-border)" }}
               >
                 <button
@@ -202,9 +287,9 @@ export function Header() {
                   style={
                     language === "en"
                       ? {
-                          background: "var(--btn-active-bg)",
-                          color: "var(--btn-active-fg)",
-                        }
+                        background: "var(--btn-active-bg)",
+                        color: "var(--btn-active-fg)",
+                      }
                       : { color: "var(--btn-inactive-fg)" }
                   }
                   onClick={() => setLanguage("en")}

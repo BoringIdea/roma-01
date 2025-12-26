@@ -12,9 +12,11 @@ See **[README_CONFIG.md](README_CONFIG.md)** for the new configuration guide.
 
 ## Quick Start
 
-1. Edit `trading_config.yaml` and fill in your accounts/models/agents
-2. Set environment variables in `.env` file
-3. Start the platform
+1. Edit `trading_config.yaml` and fill in your accounts/models/agents.
+   - On first run, if `trading_config.yaml` does not exist, `backend/start.sh` will
+     automatically create it from `trading_config.yaml.example`.
+2. Set environment variables in `.env` file.
+3. Start the platform.
 
 See **[QUICK_START.md](QUICK_START.md)** for step-by-step instructions.
 

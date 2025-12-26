@@ -71,6 +71,7 @@ export const translations = {
       decisions: "DECISIONS",
       prompts: "PROMPTS",
       chat: "CHAT",
+      analysis: "ANALYSIS",
       filter: "FILTER:",
       allAgents: "ALL AGENTS",
       selectAgent: "SELECT AGENT:",
@@ -192,9 +193,11 @@ Long-short balance:
     // Chat
     chat: {
       welcome: "Chat with AI Assistant",
-      exampleQuestions: "Ask me anything about trading strategies, prompts, or platform features.",
+      exampleQuestions: "Ask me anything about trading strategies, prompts, platform features, or request token analysis.",
       example1: "What are some basic trading prompt suggestions?",
       example2: "How does risk management work in this platform?",
+      example3: "Analyze BTC",
+      example4: "What should I do with ETH?",
       placeholder: "Type your message...",
       send: "Send",
       thinking: "Thinking...",
@@ -262,21 +265,21 @@ Long-short balance:
       title: "ROMA-01",
       
       // Paragraphs
-      intro: `ROMA-01 is a competitive AI-powered cryptocurrency futures trading platform featuring a NOF1-inspired interface for showcasing multiple large language models side-by-side, powered by the ROMA (Recursive Open Meta-Agents) framework.`,
+      intro: `ROMA-01 is an AI-powered cryptocurrency futures trading platform for running multiple LLM-based agents in live markets. It combines automated trading with a full-featured monitoring dashboard, leaderboard, and AI assistant services, all powered by the ROMA (Recursive Open Meta-Agents) framework.`,
       
-      multiModel: `This platform allows you to run up to 6 different AI models simultaneously—DeepSeek, Qwen, Claude, Grok, Gemini, and GPT—each managing its own independent trading account on live cryptocurrency futures markets. Watch them compete in real-time across BTC, ETH, SOL, BNB, DOGE, and XRP perpetual futures.`,
+      multiModel: `The platform allows you to run up to 6 different AI models simultaneously—DeepSeek, Qwen, Claude, Grok, Gemini, and GPT—each managing its own independent trading account on live cryptocurrency futures markets. You can observe how different models trade BTC, ETH, SOL, BNB, DOGE, and XRP perpetual futures under the same market conditions.`,
       
-      nof1Interface: `The NOF1-Inspired Interface provides complete transparency through a competitive leaderboard. Compare multiple AI trading models side-by-side in real-time, track account values and P/L across all models, monitor positions and completed trades, and examine every AI decision-making process. The interface demonstrates model capabilities through competitive evaluation in identical market conditions.`,
+      nof1Interface: `The frontend focuses on operational transparency rather than simple model comparison. You can monitor account values, P/L, open positions, completed trades, and decision logs for each agent, and quickly understand how AI-driven trading impacts overall portfolio risk and performance.`,
       
-      romaFramework: `The ROMA Framework is a meta-agent system that fundamentally differs from traditional LLM agent trading approaches. Unlike single monolithic agents, ROMA uses hierarchical recursive decomposition to break down complex trading decisions into parallelizable components through a plan–execute–aggregate loop.`,
+      romaFramework: `Under the hood, ROMA-01 is built on the ROMA Framework, a meta-agent system that fundamentally differs from traditional LLM agent trading approaches. Instead of a single monolithic agent, ROMA uses hierarchical recursive decomposition to structure complex trading decisions into manageable components.`,
       
-      romaProcess: `ROMA processes tasks through five stages: an Atomizer decides if task decomposition is needed; a Planner breaks complex goals into subtasks; Executors handle atomic trading decisions; an Aggregator synthesizes results into final actions; and a Verifier validates output quality. This creates clear task decomposition and transparent reasoning chains at each level of decision-making.`,
+      romaProcess: `ROMA processes tasks through a structured loop: an Atomizer decides if task decomposition is needed; a Planner breaks complex goals into subtasks; Executors handle atomic trading decisions; an Aggregator synthesizes results into final actions; and a Verifier (optional) validates output quality. This creates clear task decomposition and transparent reasoning chains at each level of decision-making.`,
       
-      tradingContext: `In trading contexts, ROMA decomposes complex market analysis into parallelizable components like technical analysis, sentiment, and risk assessment. It aggregates multiple perspectives before making final trading decisions, maintains transparent reasoning at each abstraction level, and can re-plan at different levels to recover from errors—capabilities that traditional monolithic agents cannot match.`,
+      tradingContext: `In trading contexts, ROMA decomposes complex market analysis into components like technical analysis, sentiment, and risk assessment. It aggregates multiple perspectives before making final trading decisions, maintains transparent reasoning at each abstraction level, and can re-plan at different levels to recover from errors—capabilities that traditional monolithic agents cannot match.`,
       
-      platformFeatures: `The platform features a 4-layer risk management system with position limits, direct Web3 integration with Aster Finance DEX, comprehensive technical analysis using TA-Lib indicators (RSI, MACD, EMA, ATR, Bollinger Bands), and complete decision history logging with AI reasoning for every trade.`,
+      platformFeatures: `ROMA-01 includes a 4-layer risk management system with position limits, direct Web3 integration with Aster Finance and Hyperliquid DEXs, comprehensive technical analysis using TA-Lib indicators (RSI, MACD, EMA, ATR, Bollinger Bands), complete decision history logging with AI reasoning for every trade, and an AI chat assistant that also supports token analysis requests.`,
       
-      quote: "Hierarchical recursive decomposition enables AI agents to tackle arbitrarily complex scenarios.",
+      quote: "Hierarchical recursive decomposition and multi-agent design enable ROMA-01 to trade complex markets with transparency and control.",
       
       // Section titles
       romaVsTraditional: "ROMA vs Traditional LLM Agent Trading",
@@ -390,6 +393,7 @@ Long-short balance:
       decisions: "决策",
       prompts: "提示词",
       chat: "聊天",
+      analysis: "分析",
       filter: "筛选：",
       allAgents: "所有智能体",
       selectAgent: "选择智能体：",
@@ -511,9 +515,11 @@ Long-short balance:
     // Chat
     chat: {
       welcome: "与 AI 助手聊天",
-      exampleQuestions: "问我关于交易策略、提示词或平台功能的任何问题。",
+      exampleQuestions: "问我关于交易策略、提示词、平台功能，或请求代币分析的任何问题。",
       example1: "有哪些基本的交易提示词建议？",
       example2: "这个平台的风险管理是如何工作的？",
+      example3: "分析 BTC",
+      example4: "ETH 现在应该怎么操作？",
       placeholder: "输入您的消息...",
       send: "发送",
       thinking: "思考中...",
@@ -581,21 +587,21 @@ Long-short balance:
       title: "ROMA-01",
       
       // Paragraphs
-      intro: `ROMA-01 是一个竞技性的 AI 驱动加密货币合约交易平台，具有 NOF1 风格界面，可并排展示多个大语言模型，由 ROMA（递归开放元智能体）框架驱动。`,
+      intro: `ROMA-01 是一个 AI 驱动的加密货币合约交易平台，可在真实市场中运行多个基于 LLM 的交易智能体，结合完整的监控仪表板、排行榜和 AI 助手服务，由 ROMA（递归开放元智能体）框架驱动。`,
       
-      multiModel: `本平台允许您同时运行多达 6 个不同的 AI 模型——DeepSeek、Qwen、Claude、Grok、Gemini 和 GPT——每个模型管理自己独立的交易账户，在实时加密货币合约市场上交易。观看它们在 BTC、ETH、SOL、BNB、DOGE 和 XRP 永续合约上实时竞争。`,
+      multiModel: `本平台允许你同时运行多达 6 个不同的 AI 模型——DeepSeek、Qwen、Claude、Grok、Gemini 和 GPT——每个模型管理自己独立的交易账户，在实时加密货币合约市场上交易。你可以在相同市场环境下观察不同模型如何交易 BTC、ETH、SOL、BNB、DOGE 和 XRP 等永续合约。`,
       
-      nof1Interface: `NOF1 风格界面通过竞技排行榜提供完全透明度。实时并排比较多个 AI 交易模型，跟踪所有模型的账户价值和盈亏，监控持仓和已完成交易，检查每个 AI 决策过程。该界面通过在相同市场条件下的竞技评估来展示模型能力。`,
+      nof1Interface: `前端界面以交易运营透明度为核心，而不是简单的模型对比。你可以查看每个智能体的账户价值、盈亏、当前持仓、已完成交易和详细决策日志，快速理解 AI 交易行为对整体账户风险和收益的影响。`,
       
-      romaFramework: `ROMA 框架是一个与传统 LLM 智能体交易方法根本不同的元智能体系统。与单一整体智能体不同，ROMA 使用分层递归分解，通过计划-执行-聚合循环将复杂的交易决策分解为可并行化的组件。`,
+      romaFramework: `在底层，ROMA-01 基于 ROMA 框架构建，这是一个与传统 LLM 智能体交易方法根本不同的元智能体系统。它并非依赖单一整体智能体，而是通过分层递归分解，将复杂的交易决策结构化为可管理的子任务。`,
       
-      romaProcess: `ROMA 通过五个阶段处理任务：原子化器决定是否需要任务分解；规划器将复杂目标分解为子任务；执行器处理原子化的交易决策；聚合器将结果综合为最终行动；验证器验证输出质量。这在每个决策层级创建了清晰的任务分解和透明的推理链。`,
+      romaProcess: `ROMA 通过一个结构化循环处理任务：原子化器判断是否需要任务分解；规划器将复杂目标拆解为子任务；执行器处理原子化的交易决策；聚合器将结果综合为最终行动；验证器（可选）用于校验输出质量。这样在每个决策层级都形成了清晰的任务分解与透明的推理链。`,
       
-      tradingContext: `在交易场景中，ROMA 将复杂的市场分析分解为可并行化的组件，如技术分析、情绪分析和风险评估。它在做出最终交易决策之前聚合多个视角，在每个抽象层级保持透明推理，并可以在不同层级重新规划以从错误中恢复——这些是传统整体智能体无法匹配的能力。`,
+      tradingContext: `在交易场景中，ROMA 会把复杂的市场分析分解为技术分析、情绪分析、风险评估等多个组件，在做出最终交易决策前聚合多种视角，并在每个抽象层级保持透明推理。必要时可以在不同层级重新规划，以从错误中恢复——这些能力是传统整体智能体难以实现的。`,
       
-      platformFeatures: `该平台具有带持仓限制的 4 层风险管理系统、与 Aster Finance DEX 的直接 Web3 集成、使用 TA-Lib 指标的全面技术分析（RSI、MACD、EMA、ATR、布林带），以及每笔交易的完整决策历史日志和 AI 推理。`,
+      platformFeatures: `ROMA-01 提供带持仓限制的 4 层风险管理系统、与 Aster Finance 和 Hyperliquid DEX 的直接 Web3 集成、基于 TA-Lib 指标（RSI、MACD、EMA、ATR、布林带）的全面技术分析、每笔交易的完整决策历史与 AI 推理记录，以及支持代币分析请求的 AI 聊天助手。`,
       
-      quote: "分层递归分解使 AI 智能体能够处理任意复杂的场景。",
+      quote: "分层递归分解与多智能体设计，让 ROMA-01 能够在复杂市场中以透明且可控的方式进行交易。",
       
       // Section titles
       romaVsTraditional: "ROMA vs 传统 LLM 智能体交易",

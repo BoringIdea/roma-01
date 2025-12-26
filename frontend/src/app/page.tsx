@@ -24,8 +24,8 @@ export default function HomePage() {
         dexTypeRaw === "hyperliquid"
           ? "hyperliquid"
           : dexTypeRaw === "aster"
-          ? "aster"
-          : undefined;
+            ? "aster"
+            : undefined;
 
       return {
         id: a.id,
@@ -51,21 +51,21 @@ export default function HomePage() {
       <section className="grid grid-cols-1 gap-3 p-3 overflow-hidden lg:grid-cols-3 lg:gap-3 lg:p-3 h-[calc(100vh-var(--header-h)-var(--ticker-h))]">
         {error ? (
           <div className="lg:col-span-3 flex items-center justify-center">
-            <div className="p-6 rounded border" style={{ background: "var(--panel-bg)", borderColor: "var(--panel-border)", color: "var(--foreground)" }}>
-              <p className="font-semibold mb-2" style={{ color: "#ef4444" }}>Failed to load agents</p>
-              <p className="text-sm" style={{ color: "var(--muted-text)" }}>{error.message}</p>
+            <div className="p-12 border" style={{ background: "var(--panel-bg)", borderColor: "var(--panel-border)", color: "var(--foreground)" }}>
+              <p className="text-xl font-black uppercase tracking-tighter italic mb-4" style={{ color: "#ef4444" }}>ERROR_AGENT_LOAD_FAILED</p>
+              <p className="text-xs font-bold leading-relaxed opacity-50" style={{ maxWidth: '400px' }}>{error.message}</p>
             </div>
           </div>
         ) : !agents ? (
           <div className="lg:col-span-3 flex items-center justify-center">
-            <div className="flex flex-col items-center gap-4">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2" style={{ borderColor: "var(--brand-accent)" }}></div>
-              <p style={{ color: "var(--muted-text)" }}>Loading trading platform...</p>
+            <div className="flex flex-col items-center gap-6">
+              <div className="w-12 h-12 border-2 animate-pulse" style={{ borderColor: "var(--brand-accent)" }}></div>
+              <p className="text-xs font-black uppercase tracking-[0.5em] animate-pulse">Initializing Platform</p>
             </div>
           </div>
         ) : (
           <>
-            <div className="lg:col-span-2 h-[95%]">
+            <div className="lg:col-span-2 h-full">
               <MultiAgentChart agents={agents.filter(a => a.is_running)} />
             </div>
             <div className="lg:col-span-1 h-full overflow-hidden">

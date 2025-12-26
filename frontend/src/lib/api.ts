@@ -199,8 +199,9 @@ export const api = {
   },
   
   // Chat with AI assistant
-  chat: async (message: string): Promise<{ message: string }> => {
-    const response = await fetch(`${API_BASE}/api/chat`, {
+  chat: async (message: string, language?: string): Promise<{ message: string }> => {
+    const qs = language ? `?language=${encodeURIComponent(language)}` : "";
+    const response = await fetch(`${API_BASE}/api/chat${qs}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ message }),
@@ -212,6 +213,169 @@ export const api = {
     
     const data = await response.json();
     return data;
+  },
+
+  // Close a specific position (admin only)
+  closeAgentPosition: async (
+    agentId: string,
+    payload: { symbol: string; side: "long" | "short"; quantity?: number; quantity_pct?: number },
+  ): Promise<any> => {
+    return configFetcher(`/api/admin/agents/${agentId}/positions/close`, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+  },
+
+  // Close all positions across agents (admin only)
+  closeAllPositions: async (agentIds?: string[]): Promise<any> => {
+    const body =
+      agentIds && agentIds.length > 0
+        ? { agent_ids: agentIds }
+        : {};
+    return configFetcher("/api/admin/positions/close-all", {
+      method: "POST",
+      body: JSON.stringify(body),
+    });
+  },
+
+  // Trade History Analysis APIs
+  getAgentAnalysisHistory: async (agentId: string, limit?: number): Promise<any> => {
+    const params = limit ? `?limit=${limit}` : "";
+    return fetcher(`/api/agents/${agentId}/analysis/history${params}`);
+  },
+
+  getGlobalAnalysisHistory: async (limit?: number): Promise<any> => {
+    const params = limit ? `?limit=${limit}` : "";
+    return fetcher(`/api/analysis/history/global${params}`);
+  },
+
+  getAgentInsights: async (agentId: string, limit?: number, minConfidence?: number): Promise<any> => {
+    const params = new URLSearchParams();
+    if (limit) params.append("limit", limit.toString());
+    if (minConfidence) params.append("min_confidence", minConfidence.toString());
+    const query = params.toString() ? `?${params.toString()}` : "";
+    return fetcher(`/api/agents/${agentId}/insights${query}`);
+  },
+
+  getGlobalInsights: async (limit?: number, minConfidence?: number): Promise<any> => {
+    const params = new URLSearchParams();
+    if (limit) params.append("limit", limit.toString());
+    if (minConfidence) params.append("min_confidence", minConfidence.toString());
+    const query = params.toString() ? `?${params.toString()}` : "";
+    return fetcher(`/api/insights/global${query}`);
+  },
+
+  triggerAgentAnalysis: async (
+    agentId: string,
+    analysisPeriodDays?: number,
+    minTradesRequired?: number
+  ): Promise<any> => {
+    return configFetcher(`/api/admin/agents/${agentId}/analyze`, {
+      method: "POST",
+      body: JSON.stringify({
+        analysis_period_days: analysisPeriodDays,
+        min_trades_required: minTradesRequired,
+      }),
+    });
+  },
+
+  triggerGlobalAnalysis: async (
+    analysisPeriodDays?: number,
+    minTradesRequired?: number
+  ): Promise<any> => {
+    return configFetcher("/api/admin/analyze/global", {
+      method: "POST",
+      body: JSON.stringify({
+        analysis_period_days: analysisPeriodDays,
+        min_trades_required: minTradesRequired,
+      }),
+    });
+  },
+
+  getAnalysisJobs: async (limit?: number): Promise<any> => {
+    const params = limit ? `?limit=${limit}` : "";
+    return configFetcher(`/api/admin/analysis/jobs${params}`);
+  },
+
+  getAnalysisJob: async (jobId: string): Promise<any> => {
+    return configFetcher(`/api/admin/analysis/jobs/${jobId}`);
+  },
+
+  // Dashboard APIs
+  getLargeTrades: async (
+    dex?: string,
+    symbol?: string,
+    side?: string,
+    minAmount?: number,
+    timeWindow?: string,
+    limit?: number,
+    offset?: number
+  ): Promise<{
+    trades: Array<{
+      symbol: string;
+      side: "BUY" | "SELL";
+      price: number;
+      quantity: number;
+      quote_quantity: number;
+      timestamp: string;
+      is_buyer_maker: boolean;
+      dex: "aster" | "hyperliquid";
+      trade_id?: string;
+    }>;
+    stats: {
+      total_count: number;
+      total_volume: number;
+      buy_count: number;
+      sell_count: number;
+      buy_volume: number;
+      sell_volume: number;
+      symbol_distribution: Record<string, number>;
+    };
+    pagination: {
+      total: number;
+      limit: number;
+      offset: number;
+    };
+  }> => {
+    const params = new URLSearchParams();
+    if (dex) params.append("dex", dex);
+    if (symbol) params.append("symbol", symbol);
+    if (side) params.append("side", side);
+    if (minAmount) params.append("min_amount", minAmount.toString());
+    if (timeWindow) params.append("time_window", timeWindow);
+    if (limit) params.append("limit", limit.toString());
+    if (offset !== undefined) params.append("offset", offset.toString());
+    const query = params.toString() ? `?${params.toString()}` : "";
+    return fetcher(`/api/dashboard/large-trades${query}`);
+  },
+
+  getTokenRankings: async (
+    type: "funding-rate" | "volume" | "price-change" | "open-interest",
+    dex?: string,
+    sortOrder?: string,
+    limit?: number
+  ): Promise<Array<any>> => {
+    const params = new URLSearchParams();
+    if (dex) params.append("dex", dex);
+    if (sortOrder) params.append("sort_order", sortOrder);
+    if (limit) params.append("limit", limit.toString());
+    const query = params.toString() ? `?${params.toString()}` : "";
+    const data = await fetcher<{ data: any[] }>(`/api/dashboard/rankings/${type}${query}`);
+    return data.data;
+  },
+
+  getHyperliquidLeaderboard: async (
+    window: "day" | "week" | "month" | "allTime" = "month",
+    limit = 20,
+    offset = 0,
+    dex?: "aster" | "hyperliquid"
+  ): Promise<{ data: any[]; total: number; window: string }> => {
+    const params = new URLSearchParams();
+    params.append("window", window);
+    params.append("limit", limit.toString());
+    params.append("offset", offset.toString());
+    if (dex) params.append("dex", dex);
+    return fetcher(`/api/dashboard/leaderboard?${params.toString()}`);
   },
 };
 

@@ -38,6 +38,9 @@ RUN pip install --no-cache-dir .
 # Copy configuration files
 COPY config/ ./config/
 
+# Copy prompt templates
+COPY prompts/ ./prompts/
+
 # Create logs directory
 RUN mkdir -p logs
 
