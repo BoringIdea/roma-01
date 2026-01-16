@@ -11,7 +11,7 @@ interface AdminSectionProps {
 export function AdminSection({ language, adminForm, onAdminChange }: AdminSectionProps) {
   return (
     <section
-      className="rounded-xl border p-5"
+      className="rounded-md border p-5"
       style={{ borderColor: "var(--panel-border)", background: "var(--panel-bg)" }}
     >
       <h2 className="mb-4 text-sm font-semibold uppercase tracking-wider">

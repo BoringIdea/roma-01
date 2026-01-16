@@ -18,12 +18,20 @@ from loguru import logger
 from roma_trading.toolkits import AsterToolkit, TechnicalAnalysisToolkit
 from roma_trading.core import DecisionLogger, PerformanceAnalyzer
 from roma_trading.prompts import render_prompt
+from roma_trading.services.trade_execution_service import TradeExecutionService
+from roma_trading.services.llm_client_factory import LLMClientFactory
 
 # Import HyperliquidToolkit if available
 try:
     from roma_trading.toolkits.hyperliquid_toolkit import HyperliquidToolkit
 except ImportError:
     HyperliquidToolkit = None
+
+# Import BinanceToolkit if available
+try:
+    from roma_trading.toolkits.binance_toolkit import BinanceToolkit
+except ImportError:
+    BinanceToolkit = None
 
 
 class TradingDecision(dspy.Signature):
@@ -58,7 +66,14 @@ class TradingAgent:
     - Performance tracking
     """
 
-    def __init__(self, agent_id: str, config: Dict, trading_lock: asyncio.Lock = None):
+    def __init__(
+        self,
+        agent_id: str,
+        config: Dict,
+        trading_lock: asyncio.Lock = None,
+        execution_service: Optional[TradeExecutionService] = None,
+        llm_factory: Optional[LLMClientFactory] = None,
+    ):
         """
         Initialize trading agent.
         
@@ -66,10 +81,12 @@ class TradingAgent:
             agent_id: Unique agent identifier
             config: Agent configuration dict
             trading_lock: Shared lock to prevent concurrent trading
+            execution_service: Centralized execution throttler
         """
         self.agent_id = agent_id
         self.config = config
         self.trading_lock = trading_lock or asyncio.Lock()  # Use shared or create own
+        self.execution_service = execution_service or TradeExecutionService()
         
         # Initialize DEX toolkit based on exchange.type
         exchange_cfg = config.get("exchange", {})
@@ -88,6 +105,18 @@ class TradingAgent:
                 hedge_mode=exchange_cfg.get("hedge_mode", False),
             )
             logger.info(f"TradingAgent {agent_id}: using Hyperliquid toolkit")
+        elif dex_type == "binance":
+            if BinanceToolkit is None:
+                raise ImportError(
+                    "BinanceToolkit not available. Check binance_toolkit.py imports."
+                )
+            self.dex = BinanceToolkit(
+                api_key=exchange_cfg.get("api_key", ""),
+                api_secret=exchange_cfg.get("api_secret", ""),
+                testnet=exchange_cfg.get("testnet", False),
+                hedge_mode=exchange_cfg.get("hedge_mode", False),
+            )
+            logger.info(f"TradingAgent {agent_id}: using Binance toolkit")
         else:
             self.dex = AsterToolkit(
                 user=exchange_cfg["user"],
@@ -115,7 +144,9 @@ class TradingAgent:
         self.advanced_orders = self.config["strategy"].get("advanced_orders", {})
         
         # Initialize DSPy LLM and decision module
-        self.lm = self._init_llm()
+        self.llm_factory = llm_factory or LLMClientFactory()
+        self.llm_provider = (self.config["llm"].get("provider") or "custom").lower()
+        self.lm = self.llm_factory.create_client(self.config["llm"])
         self.decision_module = dspy.ChainOfThought(TradingDecision)
         
         # Trading state - restore cycle count from previous logs
@@ -128,84 +159,6 @@ class TradingAgent:
         else:
             logger.info(f"Initialized TradingAgent: {agent_id} ({config['agent']['name']}) - Starting fresh")
 
-    def _init_llm(self):
-        """Initialize DSPy LLM based on configuration."""
-        llm_config = self.config["llm"]
-        provider = llm_config["provider"]
-        model = llm_config.get("model", "")
-        
-        if provider == "deepseek":
-            # DeepSeek API
-            lm = dspy.LM(
-                f"deepseek/{model}" if model else "deepseek/deepseek-chat",
-                api_key=llm_config["api_key"],
-                temperature=llm_config.get("temperature", 0.15),
-                max_tokens=llm_config.get("max_tokens", 4000),
-            )
-        elif provider == "qwen":
-            # Qwen API (Alibaba Cloud DashScope)
-            # Support different regions: china uses dashscope.aliyuncs.com, others use dashscope-intl.aliyuncs.com
-            model_name = model if model else "qwen-max"
-            location = llm_config.get("location", "china").lower()
-            if location == "china":
-                api_base = "https://dashscope.aliyuncs.com/compatible-mode/v1"
-            else:
-                api_base = "https://dashscope-intl.aliyuncs.com/compatible-mode/v1"
-            
-            # Use "dashscope/" prefix for DashScope models
-            lm = dspy.LM(
-                f"dashscope/{model_name}",
-                api_base=api_base,
-                api_key=llm_config["api_key"],
-                temperature=llm_config.get("temperature", 0.15),
-                max_tokens=llm_config.get("max_tokens", 4000),
-            )
-        elif provider == "anthropic":
-            # Anthropic Claude API
-            lm = dspy.LM(
-                f"anthropic/{model}" if model else "anthropic/claude-sonnet-4.5",
-                api_key=llm_config["api_key"],
-                temperature=llm_config.get("temperature", 0.15),
-                max_tokens=llm_config.get("max_tokens", 4000),
-            )
-        elif provider == "xai":
-            # xAI Grok API
-            lm = dspy.LM(
-                f"xai/{model}" if model else "xai/grok-4",
-                api_key=llm_config["api_key"],
-                temperature=llm_config.get("temperature", 0.15),
-                max_tokens=llm_config.get("max_tokens", 4000),
-            )
-        elif provider == "google":
-            # Google Gemini API
-            lm = dspy.LM(
-                f"gemini/{model}" if model else "gemini/gemini-2.5-pro",
-                api_key=llm_config["api_key"],
-                temperature=llm_config.get("temperature", 0.15),
-                max_tokens=llm_config.get("max_tokens", 4000),
-            )
-        elif provider == "openai":
-            # OpenAI GPT API
-            lm = dspy.LM(
-                f"openai/{model}" if model else "openai/gpt-5",
-                api_key=llm_config["api_key"],
-                temperature=llm_config.get("temperature", 0.15),
-                max_tokens=llm_config.get("max_tokens", 4000),
-            )
-        elif provider == "custom":
-            # Custom LLM endpoint
-            lm = dspy.LM(
-                model=llm_config["model"],
-                api_base=llm_config.get("base_url"),
-                api_key=llm_config["api_key"],
-                temperature=llm_config.get("temperature", 0.15),
-                max_tokens=llm_config.get("max_tokens", 4000),
-            )
-        else:
-            raise ValueError(f"Unsupported LLM provider: {provider}")
-        
-        logger.info(f"Initialized DSPy LM for provider '{provider}'")
-        return lm
 
     async def start(self):
         """Start the trading loop."""
@@ -239,8 +192,9 @@ class TradingAgent:
         
         # Acquire trading lock to prevent concurrent trading
         # This ensures only one agent trades at a time
-        async with self.trading_lock:
-            logger.debug(f"🔒 {self.agent_id} acquired trading lock")
+        async with self.execution_service.guard(self.agent_id):
+            async with self.trading_lock:
+                logger.debug(f"🔒 {self.agent_id} acquired trading lock")
             
             # 1. Clean up any stale orders first (free up margin)
             logger.debug("Checking for stale orders to cancel...")
@@ -285,11 +239,12 @@ class TradingAgent:
             
             # 6. AI Decision
             logger.info("Calling AI for decision...")
-            result = await asyncio.to_thread(
-                self._run_decision_module,
-                system_prompt,
-                market_context,
-            )
+            async with self.llm_factory.request_slot(self.llm_provider):
+                result = await asyncio.to_thread(
+                    self._run_decision_module,
+                    system_prompt,
+                    market_context,
+                )
             
             # 7. Parse and execute decisions
             decisions = self._parse_decisions(result.decisions_json)
@@ -323,22 +278,59 @@ class TradingAgent:
             if pos["symbol"] not in symbols:
                 symbols.append(pos["symbol"])
         
-        market_data = {}
+        market_data: Dict[str, Dict] = {}
         
         for symbol in symbols:
             try:
-                # Get 3m and 4h klines
+                # Get multi-timeframe klines; trading loop still runs at 3m interval
                 klines_3m = await self.dex.get_klines(symbol, interval="3m", limit=100)
+                klines_15m = await self.dex.get_klines(symbol, interval="15m", limit=100)
+                klines_1h = await self.dex.get_klines(symbol, interval="1h", limit=100)
                 klines_4h = await self.dex.get_klines(symbol, interval="4h", limit=100)
                 
-                # Analyze
+                # Analyze each timeframe
                 data_3m = self.ta.analyze_klines(klines_3m, interval="3m")
+                data_15m = self.ta.analyze_klines(klines_15m, interval="15m")
+                data_1h = self.ta.analyze_klines(klines_1h, interval="1h")
                 data_4h = self.ta.analyze_klines(klines_4h, interval="4h")
                 
-                market_data[symbol] = {
+                symbol_data: Dict[str, Dict] = {
                     "3m": data_3m,
+                    "15m": data_15m,
+                    "1h": data_1h,
                     "4h": data_4h,
                 }
+                
+                # Funding rate / premium info (if supported by current DEX)
+                funding_rate: Optional[float] = None
+                try:
+                    # Aster / Binance-style API
+                    if hasattr(self.dex, "get_premium_index"):
+                        premium_data = await self.dex.get_premium_index(symbol)
+                        if premium_data and isinstance(premium_data, list) and len(premium_data) > 0:
+                            item = premium_data[0]
+                            if isinstance(item, dict):
+                                raw_rate = item.get("lastFundingRate") or item.get("lastFundingRate".lower())
+                                if raw_rate is not None:
+                                    funding_rate = float(raw_rate) * 100.0
+                    # Hyperliquid-style API
+                    elif hasattr(self.dex, "get_meta_and_asset_ctxs"):
+                        meta, asset_ctxs = await self.dex.get_meta_and_asset_ctxs()
+                        base_symbol = symbol.replace("USDT", "")
+                        for ctx in asset_ctxs:
+                            coin_name = ctx.get("coin", "")
+                            if coin_name == base_symbol:
+                                raw_rate = ctx.get("funding")
+                                if raw_rate is not None:
+                                    funding_rate = float(raw_rate) * 100.0
+                                break
+                except Exception as e:
+                    logger.debug(f"Failed to fetch funding data for {symbol}: {e}")
+                
+                if funding_rate is not None:
+                    symbol_data["funding_rate"] = funding_rate
+                
+                market_data[symbol] = symbol_data
             except Exception as e:
                 logger.warning(f"Failed to fetch data for {symbol}: {e}")
         
@@ -625,7 +617,58 @@ class TradingAgent:
         else:
             lines.append("**Market Data:**")
         for symbol, data in market_data.items():
-            lines.append(self.ta.format_market_data(symbol, data["3m"], data["4h"], language=lang))
+            # Core view: 3m (short-term) + 4h (mid-term)
+            lines.append(self.ta.format_market_data(symbol, data["3m"], data.get("4h"), language=lang))
+            
+            # Additional multi-timeframe snapshot (15m & 1h)
+            data_15m = data.get("15m")
+            data_1h = data.get("1h")
+            if data_15m or data_1h:
+                if lang == "zh":
+                    lines.append("补充时间框架：")
+                    if data_15m:
+                        lines.append(
+                            f"- 15 分钟：RSI={data_15m['rsi']:.1f}，ADX={data_15m.get('adx', 0.0):.1f}，"
+                            f"成交量倍数={data_15m.get('volume_ratio', 1.0):.2f}x"
+                        )
+                    if data_1h:
+                        lines.append(
+                            f"- 1 小时：RSI={data_1h['rsi']:.1f}，ADX={data_1h.get('adx', 0.0):.1f}，"
+                            f"成交量倍数={data_1h.get('volume_ratio', 1.0):.2f}x"
+                        )
+                else:
+                    lines.append("Additional timeframes:")
+                    if data_15m:
+                        lines.append(
+                            f"- 15m: RSI={data_15m['rsi']:.1f}, ADX={data_15m.get('adx', 0.0):.1f}, "
+                            f"Volume ratio={data_15m.get('volume_ratio', 1.0):.2f}x"
+                        )
+                    if data_1h:
+                        lines.append(
+                            f"- 1h: RSI={data_1h['rsi']:.1f}, ADX={data_1h.get('adx', 0.0):.1f}, "
+                            f"Volume ratio={data_1h.get('volume_ratio', 1.0):.2f}x"
+                        )
+            
+            # Funding rate snapshot (if available)
+            funding_rate = data.get("funding_rate")
+            if funding_rate is not None:
+                if lang == "zh":
+                    if funding_rate > 0.03:
+                        sentiment = "偏多拥挤（多头付费给空头）"
+                    elif funding_rate < -0.03:
+                        sentiment = "偏空拥挤（空头付费给多头）"
+                    else:
+                        sentiment = "接近中性"
+                    lines.append(f"资金费率：{funding_rate:.4f}%，情绪：{sentiment}")
+                else:
+                    if funding_rate > 0.03:
+                        sentiment = "bullish / long-crowded (longs pay shorts)"
+                    elif funding_rate < -0.03:
+                        sentiment = "bearish / short-crowded (shorts pay longs)"
+                    else:
+                        sentiment = "neutral"
+                    lines.append(f"Funding rate: {funding_rate:.4f}% ({sentiment})")
+            
             lines.append("")
         
         return "\n".join(lines)
@@ -1040,8 +1083,9 @@ class TradingAgent:
         if quantity_pct is not None:
             decision["close_quantity_pct"] = quantity_pct
 
-        async with self.trading_lock:
-            return await self._execute_close(decision, side)
+        async with self.execution_service.guard(self.agent_id):
+            async with self.trading_lock:
+                return await self._execute_close(decision, side)
 
     async def _maybe_place_protective_orders(
         self,
@@ -1117,4 +1161,3 @@ class TradingAgent:
             if "initial_balance" not in snapshot:
                 snapshot["initial_balance"] = self.config.get("strategy", {}).get("initial_balance", 10000.0)
         return snapshot
-

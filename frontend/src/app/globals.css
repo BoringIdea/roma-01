@@ -6,40 +6,40 @@
 :root[data-theme="light"],
 :root[data-theme="dark"] {
   --background: #ffffff;
-  --foreground: #050505;
-  --header-h: 56px;
+  --foreground: #000000;
+  --header-h: 64px;
   --ticker-h: 32px;
-  --chart-logo-bg: rgba(0, 0, 0, 0.08);
-  --chart-logo-ring: rgba(0, 0, 0, 0.4);
-  --logo-chip-bg: rgba(0, 0, 0, 0.04);
-  --logo-chip-ring: rgba(0, 0, 0, 0.4);
-  --brand-deepseek: #0f172a;
-  --brand-qwen: #1f2937;
-  --brand-claude: #0f172a;
-  --brand-gpt: #111827;
-  --skeleton-bg: rgba(0, 0, 0, 0.08);
-  --watermark-color: rgba(0, 0, 0, 0.04);
+  --chart-logo-bg: rgba(0, 0, 0, 0.05);
+  --chart-logo-ring: #000000;
+  --logo-chip-bg: #ffffff;
+  --logo-chip-ring: #000000;
+  --brand-deepseek: #000000;
+  --brand-qwen: #000000;
+  --brand-claude: #000000;
+  --brand-gpt: #000000;
+  --skeleton-bg: rgba(0, 0, 0, 0.05);
+  --watermark-color: rgba(0, 0, 0, 0.02);
   --panel-bg: #ffffff;
-  --panel-border: #050505;
-  --muted-text: #050505;
-  --axis-tick: #050505;
-  --grid-stroke: rgba(0, 0, 0, 0.2);
-  --ref-line: #050505;
-  --chip-border: #050505;
-  --btn-active-bg: #050505;
+  --panel-border: #000000;
+  --muted-text: #666666;
+  --axis-tick: #000000;
+  --grid-stroke: rgba(0, 0, 0, 0.1);
+  --ref-line: #000000;
+  --chip-border: #000000;
+  --btn-active-bg: #000000;
   --btn-active-fg: #ffffff;
-  --btn-inactive-fg: #050505;
-  --btn-hover-bg: rgba(0, 0, 0, 0.08);
+  --btn-inactive-fg: #000000;
+  --btn-hover-bg: rgba(0, 0, 0, 0.05);
   --tooltip-bg: #ffffff;
-  --tooltip-border: #050505;
-  --tooltip-fg: #050505;
-  --brand-accent: #050505;
+  --tooltip-border: #000000;
+  --tooltip-fg: #000000;
+  --brand-accent: #000000;
   --header-bg: #ffffff;
-  --header-border: #050505;
-  --table-row-alt: rgba(0, 0, 0, 0.02);
-  --line-too-light-fallback: #050505;
-  --line-too-dark-fallback: #050505;
-  --link-hover: #050505;
+  --header-border: #000000;
+  --table-row-alt: #fcfcfc;
+  --line-too-light-fallback: #000000;
+  --line-too-dark-fallback: #000000;
+  --link-hover: #000000;
 }
 
 body {
@@ -52,9 +52,8 @@ body {
   text-rendering: optimizeLegibility;
 }
 
-html, body {
-  height: 100%;
-  overflow-y: auto;
+html,
+body {
   overflow-x: hidden;
 }
 
@@ -77,7 +76,7 @@ html, body {
 }
 
 :root[data-theme="dark"] .terminal-scan {
-  background: 
+  background:
     linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%),
     linear-gradient(90deg, rgba(255, 0, 0, 0.04), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.04));
   background-size: 100% 2px, 3px 100%;
@@ -95,7 +94,7 @@ html, body {
   justify-content: center;
   background: var(--logo-chip-bg);
   border: 1px solid var(--logo-chip-ring);
-  border-radius: 6px;
+  border-radius: 0;
 }
 
 .logo-chip-sm {
@@ -132,7 +131,8 @@ html, body {
   -webkit-tap-highlight-color: transparent;
 }
 
-.recharts-wrapper, .recharts-wrapper * {
+.recharts-wrapper,
+.recharts-wrapper * {
   -webkit-tap-highlight-color: transparent;
 }
 
@@ -143,7 +143,7 @@ html, body {
 
 @layer base {
   * {
-    border-radius: 0;
+    border-radius: 0 !important;
   }
 
   button,
@@ -165,12 +165,12 @@ html, body {
   .text-balance {
     text-wrap: balance;
   }
-  
+
   .scrollbar-hide {
     -ms-overflow-style: none;
     scrollbar-width: none;
   }
-  
+
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
   }
@@ -184,12 +184,12 @@ html, body {
 
 ::-webkit-scrollbar-track {
   background: rgba(0, 0, 0, 0.1);
-  border-radius: 4px;
+  border-radius: 0;
 }
 
 ::-webkit-scrollbar-thumb {
   background: rgba(255, 255, 255, 0.2);
-  border-radius: 4px;
+  border-radius: 0;
 }
 
 ::-webkit-scrollbar-thumb:hover {

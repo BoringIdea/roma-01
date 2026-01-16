@@ -7,12 +7,14 @@ from pathlib import Path
 from typing import Deque, Dict, List, Literal, Optional, Callable, Awaitable
 from contextlib import contextmanager
 
-import websockets
+from websockets.legacy.client import connect as ws_connect
 from websockets.exceptions import ConnectionClosed, InvalidState
 from loguru import logger
 
 from hyperliquid.utils import constants as hl_constants
 from hyperliquid.info import Info as HyperliquidInfo
+from roma_trading.storage import get_storage_factory
+from roma_trading.services.base_service import BaseService
 
 DexName = Literal["aster", "hyperliquid"]
 
@@ -65,7 +67,6 @@ class LargeTradeStore:
         """
         # Get storage instance from factory
         if storage_factory is None:
-            from roma_trading.storage import get_storage_factory
             storage_factory = get_storage_factory()
         
         self.storage_factory = storage_factory
@@ -386,7 +387,7 @@ class LargeTradeStore:
         yield list(self._records)
 
 
-class LargeTradeStreamer:
+class LargeTradeStreamer(BaseService):
     """Background service that ingests WebSocket streams and stores large trades."""
 
     def __init__(
@@ -395,6 +396,7 @@ class LargeTradeStreamer:
         loop: Optional[asyncio.AbstractEventLoop] = None,
         config: Optional[Dict] = None,
     ):
+        super().__init__()
         self.store = store
         self.loop = loop or asyncio.get_event_loop()
         self.config = config or DEFAULT_STREAM_CONFIG
@@ -402,14 +404,14 @@ class LargeTradeStreamer:
         self._tasks: List[asyncio.Task] = []
         self._hyperliquid_info: Optional[HyperliquidInfo] = None
 
-    async def start(self):
+    async def _start(self):
         logger.info("Starting large trade streamer...")
         if "aster" in self.config:
             self._tasks.append(asyncio.create_task(self._run_aster_stream()))
         if "hyperliquid" in self.config:
             self._tasks.append(asyncio.create_task(self._run_hyperliquid_stream()))
 
-    async def stop(self):
+    async def _stop(self):
         logger.info("Stopping large trade streamer...")
         self._stop_event.set()
         for task in self._tasks:
@@ -443,7 +445,7 @@ class LargeTradeStreamer:
             ws = None
             try:
                 # Use longer ping interval and timeout for stability
-                ws = await websockets.connect(
+                ws = await ws_connect(
                     url,
                     ping_interval=20,  # Send ping every 20 seconds
                     ping_timeout=10,   # Wait 10 seconds for pong
@@ -584,4 +586,3 @@ DEFAULT_STREAM_CONFIG = {
         "thresholds": {"BTCUSDT": 250_000, "ETHUSDT": 150_000},
     },
 }
-

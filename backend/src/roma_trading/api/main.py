@@ -34,6 +34,7 @@ from roma_trading.core.trade_history_analyzer import TradeHistoryAnalyzer
 from roma_trading.core.analysis_scheduler import AnalysisScheduler
 from roma_trading.api.routes import config as config_routes
 from roma_trading.prompts import initialize_prompt_repository
+from roma_trading.services import ServiceManager
 from roma_trading.services.large_trade_streamer import LargeTradeStore, LargeTradeStreamer
 from roma_trading.database.base import init_db, close_db
 
@@ -46,6 +47,7 @@ trade_history_analyzer: Optional[TradeHistoryAnalyzer] = None
 analysis_scheduler: Optional[AnalysisScheduler] = None
 large_trade_store: Optional[LargeTradeStore] = None
 large_trade_streamer: Optional[LargeTradeStreamer] = None
+service_manager: Optional[ServiceManager] = None
 
 
 @asynccontextmanager
@@ -55,6 +57,7 @@ async def lifespan(app: FastAPI):
     logger.info("Starting ROMA-01 Trading Platform...")
     
     global trade_history_analyzer, analysis_scheduler, large_trade_store, large_trade_streamer, dashboard_service
+    global service_manager
     
     try:
         # Initialize database
@@ -106,7 +109,6 @@ async def lifespan(app: FastAPI):
 
         # Start background snapshot updater for dashboard
         await dashboard_service.start_background_updater(interval_seconds=180)
-        await large_trade_streamer.start()
         
         # Initialize trade history analysis system
         try:
@@ -134,14 +136,23 @@ async def lifespan(app: FastAPI):
                     analysis_period_days=int(analysis_period_days),
                     min_trades_required=int(min_trades_required),
                 )
-                
-                # Start scheduler (run immediately on startup)
-                await analysis_scheduler.start(run_immediately=True)
-                logger.info("Trade history analysis system initialized and started")
+
+                logger.info("Trade history analysis system initialized and ready")
             else:
                 logger.info("Trade history analysis is disabled")
         except Exception as e:
             logger.error(f"Failed to initialize trade history analysis: {e}", exc_info=True)
+
+        services_to_manage = [
+            svc
+            for svc in (
+                large_trade_streamer,
+                analysis_scheduler,
+            )
+            if svc
+        ]
+        service_manager = ServiceManager(services_to_manage)
+        await service_manager.start_all()
     except Exception as e:
         logger.error(f"Failed to start agents: {e}", exc_info=True)
     
@@ -150,12 +161,8 @@ async def lifespan(app: FastAPI):
     # Shutdown
     logger.info("Shutting down...")
     
-    if large_trade_streamer:
-        await large_trade_streamer.stop()
-    
-    # Stop analysis scheduler
-    if analysis_scheduler:
-        await analysis_scheduler.stop()
+    if service_manager:
+        await service_manager.stop_all()
     
     await agent_manager.stop_all()
     
@@ -428,7 +435,16 @@ async def websocket_endpoint(websocket: WebSocket, agent_id: str):
     
     try:
         agent = agent_manager.get_agent(agent_id)
-        
+
+        async def _send_keepalive() -> None:
+            await websocket.send_json(
+                {
+                    "type": "keepalive",
+                    "timestamp": asyncio.get_event_loop().time(),
+                    "status": agent.get_status(),
+                }
+            )
+
         while True:
             try:
                 # Fetch current data
@@ -436,24 +452,40 @@ async def websocket_endpoint(websocket: WebSocket, agent_id: str):
                 positions = await agent.dex.get_positions()
                 trades = agent.logger_module.get_trade_history()
                 performance = agent.performance.calculate_metrics(trades)
-                
+
                 # Send to client
                 data = {
+                    "type": "update",
                     "timestamp": asyncio.get_event_loop().time(),
                     "account": account,
                     "positions": positions,
                     "performance": performance,
                     "status": agent.get_status(),
                 }
-                
+
                 await websocket.send_json(data)
-                
-                # Wait 5 seconds
-                await asyncio.sleep(5)
-                
+                await _send_keepalive()
+
+            except WebSocketDisconnect:
+                raise
             except Exception as e:
                 logger.error(f"Error in WebSocket loop: {e}")
-                break
+                try:
+                    await websocket.send_json(
+                        {
+                            "type": "error",
+                            "timestamp": asyncio.get_event_loop().time(),
+                            "message": str(e),
+                        }
+                    )
+                    await _send_keepalive()
+                except WebSocketDisconnect:
+                    raise
+                except Exception as send_exc:
+                    logger.error(f"Failed to send WebSocket error payload: {send_exc}")
+
+            # Wait 5 seconds
+            await asyncio.sleep(5)
                 
     except WebSocketDisconnect:
         logger.info(f"WebSocket disconnected for agent {agent_id}")
@@ -1067,4 +1099,3 @@ if __name__ == "__main__":
         reload=True,
         log_level="info",
     )
-

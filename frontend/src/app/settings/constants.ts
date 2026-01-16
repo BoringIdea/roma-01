@@ -9,7 +9,7 @@ export const MODEL_FILTER_ALL = "__all__";
 export const ACCOUNT_FILTER_ALL = "__all__";
 export const AGENT_FILTER_ALL = "__all__";
 
-export const ACCOUNT_TYPES = ["aster", "hyperliquid"] as const;
+export const ACCOUNT_TYPES = ["aster", "hyperliquid", "binance"] as const;
 
 export const ACCOUNT_TYPE_REQUIRED_FIELDS: Record<
   (typeof ACCOUNT_TYPES)[number],
@@ -58,6 +58,22 @@ export const ACCOUNT_TYPE_REQUIRED_FIELDS: Record<
       labelEn: "Account Address",
       placeholderZh: "例如：0xabc...",
       placeholderEn: "e.g. 0xabc...",
+    },
+  ],
+  binance: [
+    {
+      key: "api_key",
+      labelZh: "API Key",
+      labelEn: "API Key",
+      placeholderZh: "可使用环境变量 \${BINANCE_API_KEY}",
+      placeholderEn: "Use env placeholder \${BINANCE_API_KEY}",
+    },
+    {
+      key: "api_secret",
+      labelZh: "API Secret",
+      labelEn: "API Secret",
+      placeholderZh: "可使用环境变量 \${BINANCE_API_SECRET}",
+      placeholderEn: "Use env placeholder \${BINANCE_API_SECRET}",
     },
   ],
 };

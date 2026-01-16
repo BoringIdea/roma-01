@@ -3,7 +3,7 @@ Dashboard service for large trade monitoring and token rankings.
 """
 
 from datetime import datetime, timedelta, timezone
-from typing import List, Optional, Dict, Literal, Any
+from typing import List, Optional, Dict, Literal, Any, TYPE_CHECKING
 import asyncio
 from loguru import logger
 
@@ -13,8 +13,10 @@ from roma_trading.api.schemas.dashboard import (
     OpenInterestRanking,
     PriceChangeRanking,
 )
-from roma_trading.agents import AgentManager
 from roma_trading.services.large_trade_streamer import LargeTradeStore
+
+if TYPE_CHECKING:
+    from roma_trading.agents import AgentManager
 
 
 class DashboardService:
@@ -28,7 +30,7 @@ class DashboardService:
     
     def __init__(
         self,
-        agent_manager: AgentManager,
+        agent_manager: "AgentManager",
         large_trade_store: Optional[LargeTradeStore] = None,
     ):
         self.agent_manager = agent_manager
@@ -721,4 +723,3 @@ class DashboardService:
         except Exception as e:
             logger.error(f"Error getting open interest rankings: {e}", exc_info=True)
             return []
-

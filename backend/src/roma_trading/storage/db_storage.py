@@ -3,6 +3,7 @@
 from typing import List, Optional, Dict, Any
 from datetime import datetime, timedelta
 from loguru import logger
+from sqlalchemy.exc import IntegrityError
 
 from .interfaces import (
     TradeStorage,
@@ -384,9 +385,10 @@ class DatabaseAnalysisJobStorage(AnalysisJobStorage):
     """Database-based analysis job storage."""
     
     async def create_job(self, job: Any) -> None:
-        """Create job in database."""
+        """Create job in database. If job already exists, update it instead."""
         async for session in get_async_session():
             try:
+                # Try to create the job first
                 await AnalysisJobService.create_job(
                     session=session,
                     job_id=job.job_id,
@@ -396,6 +398,21 @@ class DatabaseAnalysisJobStorage(AnalysisJobStorage):
                     analysis_period_start=None,
                     analysis_period_end=None,
                 )
+            except IntegrityError as e:
+                # If job already exists (unique constraint violation), update it instead
+                if "UNIQUE constraint failed" in str(e) or "UNIQUE constraint" in str(e):
+                    await session.rollback()
+                    await AnalysisJobService.update_job(
+                        session=session,
+                        job_id=job.job_id,
+                        status=job.status,
+                        started_at=job.started_at,
+                        completed_at=job.completed_at,
+                        error_message=job.error_message,
+                    )
+                else:
+                    # Re-raise if it's a different integrity error
+                    raise
             finally:
                 await session.close()
     
