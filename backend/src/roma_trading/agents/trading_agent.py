@@ -27,6 +27,12 @@ try:
 except ImportError:
     HyperliquidToolkit = None
 
+# Import BinanceToolkit if available
+try:
+    from roma_trading.toolkits.binance_toolkit import BinanceToolkit
+except ImportError:
+    BinanceToolkit = None
+
 
 class TradingDecision(dspy.Signature):
     """
@@ -99,6 +105,18 @@ class TradingAgent:
                 hedge_mode=exchange_cfg.get("hedge_mode", False),
             )
             logger.info(f"TradingAgent {agent_id}: using Hyperliquid toolkit")
+        elif dex_type == "binance":
+            if BinanceToolkit is None:
+                raise ImportError(
+                    "BinanceToolkit not available. Check binance_toolkit.py imports."
+                )
+            self.dex = BinanceToolkit(
+                api_key=exchange_cfg.get("api_key", ""),
+                api_secret=exchange_cfg.get("api_secret", ""),
+                testnet=exchange_cfg.get("testnet", False),
+                hedge_mode=exchange_cfg.get("hedge_mode", False),
+            )
+            logger.info(f"TradingAgent {agent_id}: using Binance toolkit")
         else:
             self.dex = AsterToolkit(
                 user=exchange_cfg["user"],

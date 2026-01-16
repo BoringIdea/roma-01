@@ -9,7 +9,7 @@ export interface Agent {
   cycle_count: number;
   runtime_minutes: number;
   // Multi-DEX support fields
-  dex_type?: "aster" | "hyperliquid";
+  dex_type?: "aster" | "hyperliquid" | "binance";
   account_id?: string;
   model_id?: string;
   model_provider?: string;
@@ -24,7 +24,7 @@ export interface AgentStatus {
   cycle_count: number;
   runtime_minutes: number;
   // Multi-DEX support fields
-  dex_type?: "aster" | "hyperliquid";
+  dex_type?: "aster" | "hyperliquid" | "binance";
   account_id?: string;
   model_id?: string;
   model_provider?: string;

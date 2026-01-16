@@ -66,6 +66,13 @@ accounts:
   #   account_id: ${HL_ACCOUNT_ADDRESS_01} # Main wallet address
   #   testnet: false
   #   hedge_mode: false
+  # - id: "binance-acc-01"
+  #   name: "Binance Account 01"
+  #   dex_type: "binance"
+  #   api_key: ${BINANCE_API_KEY}
+  #   api_secret: ${BINANCE_API_SECRET}
+  #   testnet: false
+  #   hedge_mode: false
 
 # ============================================
 # Models: Define your LLM models

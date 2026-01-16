@@ -53,7 +53,7 @@ export type AccountFilter = string;
 export type AgentFilter = string;
 export type ModelFilter = string;
 
-export type AccountTypeSpecificKey = "user" | "signer" | "private_key" | "api_secret" | "account_id";
+export type AccountTypeSpecificKey = "user" | "signer" | "private_key" | "api_key" | "api_secret" | "account_id";
 
 export interface AccountDraft {
   id: string;
@@ -64,6 +64,7 @@ export interface AccountDraft {
   user: string;
   signer: string;
   private_key: string;
+  api_key: string;
   api_secret: string;
   account_id: string;
 }
