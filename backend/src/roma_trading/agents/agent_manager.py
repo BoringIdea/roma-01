@@ -244,6 +244,22 @@ class AgentManager:
                     "testnet": account.get("testnet", False),
                     "hedge_mode": account.get("hedge_mode", False),
                 })
+            elif dex_type == "binance":
+                # Validate required fields for Binance
+                required_fields = ["api_key", "api_secret"]
+                missing = [f for f in required_fields if not account.get(f)]
+                if missing:
+                    logger.error(
+                        f"Account {account_id} missing required fields for Binance: {missing}"
+                    )
+                    continue
+
+                exchange.update({
+                    "api_key": account.get("api_key"),
+                    "api_secret": account.get("api_secret"),
+                    "testnet": account.get("testnet", False),
+                    "hedge_mode": account.get("hedge_mode", False),
+                })
             else:
                 logger.error(f"Unsupported dex_type '{dex_type}' for account {account_id}")
                 continue
