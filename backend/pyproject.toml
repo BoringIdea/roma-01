@@ -37,6 +37,7 @@ dependencies = [
     "eth-abi>=5.1.0",
     "web3>=7.0.0",
     "hyperliquid-python-sdk>=0.20.0",
+    "x402>=0.2.1",
     "ruamel.yaml>=0.18.6",
 ]
 

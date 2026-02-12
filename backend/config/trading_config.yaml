@@ -14,16 +14,6 @@ system:
   max_concurrent_agents: 6
   log_level: "INFO"
   prompt_language: "en" # zh（中文） or en(English)
-  # Storage configuration
-  storage:
-    type: "database"  # "database" or "file"
-    base_dir: "logs"  # Base directory for file storage (only used when type="file")
-    large_trades_file: "data/large_trades.jsonl"  # Path for large trades file storage
-  trade_history_analysis:
-    enabled: true
-    analysis_interval_hours: 12.0
-    analysis_period_days: 30
-    min_trades_required: 5
 
 auth:
   admin:
@@ -35,36 +25,30 @@ api:
   host: "0.0.0.0"
   port: 8080
 
-# ============================================
-# x402 Server Configuration (Seller mode)
-# ============================================
 x402:
-  enabled: false                     # Set to true to enable /x402 paid endpoint
-  price_usdc: 5.0                    # Fee per request (USDC)
+  enabled: false
+  price_usdc: 5.0
   network: ${X402_NETWORK:-base-sepolia}
   pay_to_address: ${X402_PAY_TO_ADDRESS}
-  facilitator_url: ${X402_FACILITATOR_URL}  # Optional custom facilitator URL
+  facilitator_url: ${X402_FACILITATOR_URL}
   payment_description: "roma-01 strategy recommendation"
   resource_description: "AI-generated trading strategy advice"
   resource_mime_type: "application/json"
   max_deadline_seconds: 120
   discoverable: true
-  cdp_api_key_id: ${X402_CDP_API_KEY_ID}     # Required when using Coinbase facilitator
+  cdp_api_key_id: ${X402_CDP_API_KEY_ID}
   cdp_api_key_secret: ${X402_CDP_API_KEY_SECRET}
 
-# ============================================
-# Remote Strategy Configuration (Buyer mode)
-# ============================================
 remote_strategy:
-  enabled: false                     # Set to true to call remote /x402 services
-  endpoint: ${REMOTE_X402_ENDPOINT}  # e.g. https://partner.example.com/x402
-  network: ${REMOTE_X402_NETWORK}    # Optional network filter
+  enabled: false
+  endpoint: ${REMOTE_X402_ENDPOINT}
+  network: ${REMOTE_X402_NETWORK}
   payment_asset: ${REMOTE_X402_PAYMENT_ASSET:-USDC}
-  account: ${REMOTE_X402_ACCOUNT}    # Buyer wallet address
-  private_key: ${REMOTE_X402_PRIVATE_KEY}  # Buyer wallet private key (use secure storage)
-  price_cap: ${REMOTE_X402_PRICE_CAP}      # Optional max fee per request
-  discovery: ${REMOTE_X402_DISCOVERY}      # Optional facilitator discovery endpoint
-  fallback_mode: ${REMOTE_FALLBACK_MODE:-local}  # local|wait|error
+  account: ${REMOTE_X402_ACCOUNT}
+  private_key: ${REMOTE_X402_PRIVATE_KEY}
+  price_cap: ${REMOTE_X402_PRICE_CAP}
+  discovery: ${REMOTE_X402_DISCOVERY}
+  fallback_mode: ${REMOTE_FALLBACK_MODE:-local}
   timeout_seconds: ${REMOTE_TIMEOUT_SECONDS:-10}
   retry_limit: ${REMOTE_RETRY_LIMIT:-1}
 
@@ -99,13 +83,6 @@ accounts:
   #   account_id: ${HL_ACCOUNT_ADDRESS_01} # Main wallet address
   #   testnet: false
   #   hedge_mode: false
-  # - id: "binance-acc-01"
-  #   name: "Binance Account 01"
-  #   dex_type: "binance"
-  #   api_key: ${BINANCE_API_KEY}
-  #   api_secret: ${BINANCE_API_SECRET}
-  #   testnet: false
-  #   hedge_mode: false
 
 # ============================================
 # Models: Define your LLM models
@@ -119,46 +96,46 @@ models:
     temperature: 0.15
     max_tokens: 4000
   
-  # Qwen3 Max
-  - id: "qwen3-max"
-    provider: "qwen"
-    api_key: ${QWEN_API_KEY}
-    model: "qwen-max"
-    location: "china"  # "china" for China region, "international" or other values for international region
-    temperature: 0.15
-    max_tokens: 4000
+  # # Qwen3 Max
+  # - id: "qwen3-max"
+  #   provider: "qwen"
+  #   api_key: ${QWEN_API_KEY}
+  #   model: "qwen-max"
+  #   location: "china"  # "china" for China region, "international" or other values for international region
+  #   temperature: 0.15
+  #   max_tokens: 4000
   
-  # Claude Sonnet 4.5
-  - id: "claude-sonnet-4.5"
-    provider: "anthropic"
-    api_key: ${ANTHROPIC_API_KEY}
-    model: "claude-sonnet-4.5"
-    temperature: 0.15
-    max_tokens: 4000
+  # # Claude Sonnet 4.5
+  # - id: "claude-sonnet-4.5"
+  #   provider: "anthropic"
+  #   api_key: ${ANTHROPIC_API_KEY}
+  #   model: "claude-sonnet-4.5"
+  #   temperature: 0.15
+  #   max_tokens: 4000
   
-  # GPT-5
-  - id: "gpt-5"
-    provider: "openai"
-    api_key: ${OPENAI_API_KEY}
-    model: "gpt-5"
-    temperature: 0.15
-    max_tokens: 4000
+  # # GPT-5
+  # - id: "gpt-5"
+  #   provider: "openai"
+  #   api_key: ${OPENAI_API_KEY}
+  #   model: "gpt-5"
+  #   temperature: 0.15
+  #   max_tokens: 4000
   
-  # Grok 4
-  - id: "grok-4"
-    provider: "xai"
-    api_key: ${XAI_API_KEY}
-    model: "grok-4"
-    temperature: 0.15
-    max_tokens: 4000
+  # # Grok 4
+  # - id: "grok-4"
+  #   provider: "xai"
+  #   api_key: ${XAI_API_KEY}
+  #   model: "grok-4"
+  #   temperature: 0.15
+  #   max_tokens: 4000
   
-  # Gemini 2.5 Pro
-  - id: "gemini-2.5-pro"
-    provider: "google"
-    api_key: ${GOOGLE_API_KEY}
-    model: "gemini-2.5-pro"
-    temperature: 0.15
-    max_tokens: 4000
+  # # Gemini 2.5 Pro
+  # - id: "gemini-2.5-pro"
+  #   provider: "google"
+  #   api_key: ${GOOGLE_API_KEY}
+  #   model: "gemini-2.5-pro"
+  #   temperature: 0.15
+  #   max_tokens: 4000
 
 # ============================================
 # Agents: Bind accounts with models

@@ -7,12 +7,15 @@ prompts, and platform features.
 
 import asyncio
 import dspy
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 from loguru import logger
 from roma_trading.config import get_settings
 from roma_trading.agents import AgentManager
 from roma_trading.prompts import render_prompt
 from roma_trading.core.token_analysis_handler import TokenAnalysisHandler
+
+if TYPE_CHECKING:
+    pass  # Keep for future type-only imports
 
 
 class ChatResponse(dspy.Signature):
@@ -25,7 +28,7 @@ class ChatResponse(dspy.Signature):
 class ChatService:
     """Service for handling chat requests with AI assistant."""
     
-    def __init__(self, agent_manager: AgentManager):
+    def __init__(self, agent_manager: "AgentManager"):
         self.agent_manager = agent_manager
         self.token_handler = TokenAnalysisHandler(agent_manager)
     
@@ -193,7 +196,11 @@ class ChatService:
             return lm
         
         raise RuntimeError("No LLM available for chat. Please ensure at least one agent is configured.")
-    
+
+    def get_llm(self):
+        """Expose LLM construction for other services (e.g., strategy advisor)."""
+        return self._get_llm()
+
     async def chat(self, message: str, language: str = "en") -> str:
         """
         Process a chat message and return AI response.
@@ -330,7 +337,7 @@ def get_chat_service() -> ChatService:
     return chat_service
 
 
-def initialize_chat_service(agent_manager: AgentManager):
+def initialize_chat_service(agent_manager: "AgentManager"):
     """Initialize global chat service."""
     global chat_service
     chat_service = ChatService(agent_manager)

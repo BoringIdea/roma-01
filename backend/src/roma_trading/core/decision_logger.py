@@ -208,7 +208,114 @@ class DecisionLogger:
         self._last_external_cash_flow = external_cash_flow
         
         logger.info(f"Logged decision cycle {cycle} for agent {self.agent_id}")
-    
+
+    def log_remote_strategy(
+        self,
+        cycle: int,
+        account: Dict,
+        positions: List[Dict],
+        payload: Dict,
+    ) -> None:
+        """Log remote strategy suggestion response."""
+        timestamp = datetime.now()
+
+        current_equity = float(account.get("total_wallet_balance", 0.0))
+        current_unrealized = float(account.get("total_unrealized_profit", 0.0))
+        adjusted_equity = current_equity - self._net_deposits
+
+        # Log as a decision with remote strategy info
+        import asyncio
+        try:
+            loop = asyncio.get_event_loop()
+            if loop.is_running():
+                asyncio.create_task(
+                    self.decision_log_storage.create_decision_log(
+                        agent_id=self.agent_id,
+                        cycle_number=cycle,
+                        timestamp=timestamp,
+                        chain_of_thought=f"Remote strategy: {json.dumps(payload)}",
+                        decisions=[{"source": "remote", "payload": payload}],
+                        account_state=account,
+                        positions=positions,
+                    )
+                )
+            else:
+                loop.run_until_complete(
+                    self.decision_log_storage.create_decision_log(
+                        agent_id=self.agent_id,
+                        cycle_number=cycle,
+                        timestamp=timestamp,
+                        chain_of_thought=f"Remote strategy: {json.dumps(payload)}",
+                        decisions=[{"source": "remote", "payload": payload}],
+                        account_state=account,
+                        positions=positions,
+                    )
+                )
+        except RuntimeError:
+            asyncio.run(
+                self.decision_log_storage.create_decision_log(
+                    agent_id=self.agent_id,
+                    cycle_number=cycle,
+                    timestamp=timestamp,
+                    chain_of_thought=f"Remote strategy: {json.dumps(payload)}",
+                    decisions=[{"source": "remote", "payload": payload}],
+                    account_state=account,
+                    positions=positions,
+                )
+            )
+
+        # Save equity history entry
+        try:
+            loop = asyncio.get_event_loop()
+            if loop.is_running():
+                asyncio.create_task(
+                    self.equity_storage.create_equity_entry(
+                        agent_id=self.agent_id,
+                        timestamp=timestamp,
+                        cycle=cycle,
+                        equity=adjusted_equity,
+                        adjusted_equity=adjusted_equity,
+                        gross_equity=current_equity,
+                        unrealized_pnl=current_unrealized,
+                        pnl=current_unrealized,
+                        net_deposits=self._net_deposits,
+                        external_cash_flow=0.0,
+                    )
+                )
+            else:
+                loop.run_until_complete(
+                    self.equity_storage.create_equity_entry(
+                        agent_id=self.agent_id,
+                        timestamp=timestamp,
+                        cycle=cycle,
+                        equity=adjusted_equity,
+                        adjusted_equity=adjusted_equity,
+                        gross_equity=current_equity,
+                        unrealized_pnl=current_unrealized,
+                        pnl=current_unrealized,
+                        net_deposits=self._net_deposits,
+                        external_cash_flow=0.0,
+                    )
+                )
+        except RuntimeError:
+            asyncio.run(
+                self.equity_storage.create_equity_entry(
+                    agent_id=self.agent_id,
+                    timestamp=timestamp,
+                    cycle=cycle,
+                    equity=adjusted_equity,
+                    adjusted_equity=adjusted_equity,
+                    gross_equity=current_equity,
+                    unrealized_pnl=current_unrealized,
+                    pnl=current_unrealized,
+                    net_deposits=self._net_deposits,
+                    external_cash_flow=0.0,
+                )
+            )
+
+        logger.info(f"Logged remote strategy cycle {cycle} for agent {self.agent_id}")
+
+
     def record_open_position(
         self,
         symbol: str,
